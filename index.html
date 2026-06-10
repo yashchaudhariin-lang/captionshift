@@ -1,0 +1,1216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CaptionShift — Free Auto Captions for Videos</title>
+
+    <!-- SEO -->
+    <meta
+      name="description"
+      content="Free AI auto caption generator. Upload your video, position captions anywhere, choose your style and download. No signup needed."
+    />
+    <meta
+      name="keywords"
+      content="free auto captions, video captions generator, add subtitles to video free, AI captions, auto subtitle generator"
+    />
+    <meta
+      property="og:title"
+      content="CaptionShift — Free Auto Captions for Videos"
+    />
+    <meta
+      property="og:description"
+      content="Add captions to your videos instantly. Free, no signup, drag to position."
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg: #080810;
+        --surface: #0f0f1a;
+        --surface2: #161625;
+        --border: #222235;
+        --accent: #6c63ff;
+        --accent2: #ff6584;
+        --accent3: #43e97b;
+        --text: #eeeef5;
+        --muted: #666680;
+        --success: #43e97b;
+        --error: #ff4f6a;
+        --gold: #ffd166;
+        --radius: 14px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Inter", sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 70% 50% at 10% 0%,
+            rgba(108, 99, 255, 0.1) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 50% 40% at 90% 100%,
+            rgba(255, 101, 132, 0.08) 0%,
+            transparent 60%
+          );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .wrapper {
+        position: relative;
+        z-index: 1;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 40px 24px 60px;
+        flex: 1;
+      }
+
+      /* Header */
+      header {
+        text-align: center;
+        margin-bottom: 48px;
+      }
+
+      .logo {
+        font-family: "Syne", sans-serif;
+        font-size: clamp(42px, 7vw, 76px);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        background: linear-gradient(
+          135deg,
+          #fff 0%,
+          var(--accent) 50%,
+          var(--accent2) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+      }
+
+      .tagline {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-weight: 500;
+      }
+
+      /* Status */
+      .status-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px 18px;
+        margin-bottom: 28px;
+        font-size: 14px;
+      }
+
+      .status-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--error);
+        flex-shrink: 0;
+      }
+
+      .status-dot.online {
+        background: var(--success);
+        animation: blink 2s ease infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      /* Main layout */
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 24px;
+        align-items: start;
+      }
+
+      @media (max-width: 800px) {
+        .main-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Cards */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 24px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card-title {
+        font-family: "Syne", sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        letter-spacing: -0.01em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Upload zone */
+      .upload-zone {
+        border: 2px dashed var(--border);
+        border-radius: var(--radius);
+        padding: 36px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s;
+        background: var(--bg);
+        position: relative;
+      }
+
+      .upload-zone:hover,
+      .upload-zone.drag {
+        border-color: var(--accent);
+        background: rgba(108, 99, 255, 0.05);
+      }
+
+      .upload-zone input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+      }
+
+      .upload-icon {
+        font-size: 40px;
+        margin-bottom: 12px;
+      }
+      .upload-label {
+        font-size: 15px;
+        font-weight: 500;
+      }
+      .upload-sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+
+      /* Video preview area */
+      .preview-wrap {
+        position: relative;
+        background: #000;
+        border-radius: var(--radius);
+        overflow: hidden;
+        aspect-ratio: 16/9;
+        display: none;
+      }
+
+      .preview-wrap.show {
+        display: block;
+      }
+
+      #previewVideo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+
+      /* Draggable caption overlay */
+      .caption-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .caption-handle {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        cursor: grab;
+        pointer-events: all;
+        user-select: none;
+        z-index: 10;
+        max-width: 90%;
+      }
+
+      .caption-handle:active {
+        cursor: grabbing;
+      }
+
+      .caption-preview-text {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 16px;
+        text-align: center;
+        white-space: nowrap;
+        line-height: 1.4;
+      }
+
+      /* Drag hint */
+      .drag-hint {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(108, 99, 255, 0.8);
+        color: #fff;
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      /* Right panel */
+      .right-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      /* Font picker */
+      .font-picker {
+        width: 100%;
+        padding: 10px 12px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text);
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        cursor: pointer;
+        outline: none;
+        transition: border-color 0.2s;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666680' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 32px;
+      }
+      .font-picker:hover, .font-picker:focus {
+        border-color: var(--accent);
+      }
+      .font-label {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 6px;
+        display: block;
+      }
+
+      /* Style selector */
+      .style-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+
+      .style-btn {
+        padding: 10px 8px;
+        border-radius: 10px;
+        border: 2px solid var(--border);
+        background: var(--bg);
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.2s;
+        font-family: "Inter", sans-serif;
+      }
+
+      .style-btn:hover {
+        border-color: var(--accent);
+      }
+      .style-btn.selected {
+        border-color: var(--accent);
+        background: rgba(108, 99, 255, 0.1);
+      }
+
+      .style-sample {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        display: inline-block;
+      }
+
+      .style-name {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      /* Action buttons */
+      .btn {
+        width: 100%;
+        padding: 16px;
+        border-radius: var(--radius);
+        border: none;
+        font-family: "Syne", sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: all 0.25s;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color: #fff;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 28px rgba(108, 99, 255, 0.35);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, var(--accent3), #38d68a);
+        color: #000;
+        display: none;
+      }
+
+      .btn-success.show {
+        display: block;
+      }
+      .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 28px rgba(67, 233, 123, 0.3);
+      }
+
+      /* Progress */
+      .progress-wrap {
+        display: none;
+        margin-top: 12px;
+      }
+      .progress-wrap.show {
+        display: block;
+      }
+      .progress-bar {
+        background: var(--bg);
+        border-radius: 999px;
+        height: 5px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
+        border-radius: 999px;
+        width: 0%;
+        transition: width 0.5s ease;
+      }
+      .progress-label {
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      /* Transcript editor */
+      .transcript-wrap {
+        display: none;
+        margin-top: 16px;
+      }
+
+      .transcript-wrap.show {
+        display: block;
+      }
+
+      .transcript-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .segment-list {
+        max-height: 220px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding-right: 4px;
+      }
+
+      .segment-list::-webkit-scrollbar {
+        width: 4px;
+      }
+      .segment-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .segment-list::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 2px;
+      }
+
+      .segment-item {
+        display: grid;
+        grid-template-columns: 70px 1fr;
+        gap: 8px;
+        align-items: center;
+        background: var(--bg);
+        border-radius: 8px;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+      }
+
+      .segment-time {
+        font-size: 10px;
+        color: var(--muted);
+        font-family: "Inter", monospace;
+      }
+
+      .segment-text {
+        font-size: 13px;
+        background: none;
+        border: none;
+        color: var(--text);
+        width: 100%;
+        font-family: "Inter", sans-serif;
+        outline: none;
+        resize: none;
+        line-height: 1.4;
+      }
+
+      /* Info pills */
+      .info-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(108, 99, 255, 0.1);
+        border: 1px solid rgba(108, 99, 255, 0.3);
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        color: #a0a0ff;
+      }
+
+      /* Footer */
+      footer {
+        position: relative;
+        z-index: 1;
+        border-top: 1px solid var(--border);
+        padding: 20px 24px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 18px;
+        font-size: 14px;
+        z-index: 999;
+        transform: translateY(60px);
+        opacity: 0;
+        transition: all 0.3s ease;
+        max-width: 300px;
+      }
+
+      .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      .toast.error {
+        border-color: var(--error);
+      }
+      .toast.success {
+        border-color: var(--success);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <div class="logo">CaptionShift</div>
+        <div class="tagline">
+          Free AI Auto Captions · Drag to Position · No Signup
+        </div>
+      </header>
+
+      <div class="status-bar">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connecting to AI server...</span>
+      </div>
+
+      <div class="main-grid">
+        <!-- Left: Video area -->
+        <div>
+          <div class="card" style="margin-bottom: 16px">
+            <div class="card-title">📁 Upload Your Video</div>
+
+            <div class="upload-zone" id="uploadZone">
+              <input type="file" id="videoInput" accept="video/*" />
+              <div class="upload-icon">🎬</div>
+              <div class="upload-label">Drag & drop your video here</div>
+              <div class="upload-sub">
+                MP4, MOV, AVI supported · Up to 10 minutes
+              </div>
+            </div>
+
+            <!-- Video Preview -->
+            <div class="preview-wrap" id="previewWrap">
+              <video id="previewVideo" controls></video>
+              <div class="caption-overlay" id="captionOverlay">
+                <div class="drag-hint" id="dragHint">
+                  ✋ Drag the caption to reposition
+                </div>
+                <div
+                  class="caption-handle"
+                  id="captionHandle"
+                  style="left: 50%; top: 85%"
+                >
+                  <div class="caption-preview-text" id="captionPreviewText">
+                    Your caption will appear here
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Transcript Editor -->
+            <div class="transcript-wrap" id="transcriptWrap">
+              <div class="transcript-title">✏️ Edit Captions (optional)</div>
+              <div class="segment-list" id="segmentList"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Controls -->
+        <div class="right-panel">
+          <!-- Caption Style -->
+          <div class="card">
+            <div class="card-title">🎨 Caption Style</div>
+
+            <!-- Font Picker -->
+            <span class="font-label">🔤 Font</span>
+            <select class="font-picker" id="fontPicker" onchange="selectFont(this.value)">
+              <option value="Arial">Arial — Clean &amp; Neutral</option>
+              <option value="Impact">Impact — Bold / Meme</option>
+              <option value="Helvetica">Helvetica — Minimal / Pro</option>
+              <option value="Georgia">Georgia — Elegant / Editorial</option>
+              <option value="Courier New">Courier New — Typewriter</option>
+              <option value="Trebuchet MS">Trebuchet MS — Friendly</option>
+              <option value="Comic Sans MS">Comic Sans — Casual / Fun</option>
+              <option value="Verdana">Verdana — Very Readable</option>
+              <option value="Tahoma">Tahoma — Crisp / Compact</option>
+              <option value="Palatino Linotype">Palatino — Cinematic</option>
+              <option value="Century Gothic">Century Gothic — Geometric</option>
+              <option value="Times New Roman">Times New Roman — Classic</option>
+            </select>
+
+            <!-- Style Buttons -->
+            <div style="margin-top:14px;">
+            <div class="style-options">
+              <div class="style-btn selected" onclick="selectStyle('clean_white', this)">
+                <div class="style-sample" style="color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;">Aa</div>
+                <div class="style-name">Clean White</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('bold_yellow', this)">
+                <div class="style-sample" style="color:#ffd700;text-shadow:0 0 3px #000,0 0 3px #000;">Aa</div>
+                <div class="style-name">Bold Yellow</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('black_box', this)">
+                <div class="style-sample" style="color:#fff;background:#000;padding:2px 6px;border-radius:3px;">Aa</div>
+                <div class="style-name">Black Box</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('neon_green', this)">
+                <div class="style-sample" style="color:#00ff66;text-shadow:0 0 4px #00ff66;">Aa</div>
+                <div class="style-name">Neon Green</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('fire_red', this)">
+                <div class="style-sample" style="color:#ff2020;text-shadow:0 0 4px #000,0 0 4px #000;">Aa</div>
+                <div class="style-name">Fire Red</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('sky_blue', this)">
+                <div class="style-sample" style="color:#38bdf8;text-shadow:0 0 4px #000,0 0 4px #000;">Aa</div>
+                <div class="style-name">Sky Blue</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('pink_pop', this)">
+                <div class="style-sample" style="color:#ff69b4;text-shadow:0 0 4px #000,0 0 4px #000;">Aa</div>
+                <div class="style-name">Pink Pop</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('outline_only', this)">
+                <div class="style-sample" style="color:#fff;-webkit-text-stroke:1px #000;text-stroke:1px #000;">Aa</div>
+                <div class="style-name">Outline</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('gradient_gold', this)">
+                <div class="style-sample" style="color:#ffaa00;text-shadow:0 0 4px #000,0 0 4px #000;">Aa</div>
+                <div class="style-name">Gold</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('cyan_glow', this)">
+                <div class="style-sample" style="color:#00ffff;text-shadow:0 0 6px #00ffff,0 0 3px #00ffff;">Aa</div>
+                <div class="style-name">Cyan Glow</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('dark_subtitle', this)">
+                <div class="style-sample" style="color:#fff;background:rgba(0,0,0,0.85);padding:2px 8px;border-radius:3px;">Aa</div>
+                <div class="style-name">Netflix</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('purple_haze', this)">
+                <div class="style-sample" style="color:#cc00ff;text-shadow:0 0 6px #cc00ff,0 0 3px #cc00ff;">Aa</div>
+                <div class="style-name">Purple Haze</div>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <!-- Position info -->
+          <div class="card">
+            <div class="card-title">📍 Caption Position</div>
+            <p
+              style="font-size: 13px; color: var(--muted); margin-bottom: 12px"
+            >
+              Drag the caption label on the video preview to position it exactly
+              where you want.
+            </p>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <span class="info-pill">X: <span id="posX">50</span>%</span>
+              <span class="info-pill">Y: <span id="posY">85</span>%</span>
+            </div>
+            <div
+              style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap"
+            >
+              <button
+                onclick="setPreset(50, 15)"
+                style="
+                  flex: 1;
+                  padding: 8px;
+                  background: var(--bg);
+                  border: 1px solid var(--border);
+                  border-radius: 8px;
+                  color: var(--text);
+                  cursor: pointer;
+                  font-size: 12px;
+                "
+              >
+                ⬆ Top
+              </button>
+              <button
+                onclick="setPreset(50, 50)"
+                style="
+                  flex: 1;
+                  padding: 8px;
+                  background: var(--bg);
+                  border: 1px solid var(--border);
+                  border-radius: 8px;
+                  color: var(--text);
+                  cursor: pointer;
+                  font-size: 12px;
+                "
+              >
+                ⬛ Middle
+              </button>
+              <button
+                onclick="setPreset(50, 85)"
+                style="
+                  flex: 1;
+                  padding: 8px;
+                  background: var(--bg);
+                  border: 1px solid var(--border);
+                  border-radius: 8px;
+                  color: var(--text);
+                  cursor: pointer;
+                  font-size: 12px;
+                "
+              >
+                ⬇ Bottom
+              </button>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="card">
+            <div class="card-title">⚡ Generate</div>
+
+            <button
+              class="btn btn-primary"
+              id="transcribeBtn"
+              onclick="transcribeVideo()"
+              disabled
+            >
+              🎙 Transcribe Speech
+            </button>
+
+            <div class="progress-wrap" id="progressWrap">
+              <div style="height: 12px"></div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+              <div class="progress-label" id="progressLabel">Processing...</div>
+            </div>
+
+            <div style="height: 12px"></div>
+
+            <button
+              class="btn btn-primary"
+              id="generateBtn"
+              onclick="generateCaptions()"
+              disabled
+              style="
+                background: linear-gradient(135deg, #43e97b, #38d68a);
+                color: #000;
+              "
+            >
+              🎬 Burn Captions & Download
+            </button>
+
+            <button class="btn btn-success" id="downloadBtn">
+              ⬇ Download Again
+            </button>
+          </div>
+
+          <!-- Tips -->
+          <div
+            class="card"
+            style="
+              background: rgba(108, 99, 255, 0.05);
+              border-color: rgba(108, 99, 255, 0.2);
+            "
+          >
+            <div class="card-title" style="font-size: 14px">
+              💡 Tips for Best Results
+            </div>
+            <p style="font-size: 12px; color: var(--muted); line-height: 1.7">
+              • Speak clearly and at a normal pace<br />
+              • Use good microphone or minimal background noise<br />
+              • Works with English and Hindi<br />
+              • Edit captions after transcription if needed<br />
+              • Processing takes 1-3 mins for short videos
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      © 2026 CaptionShift · Free AI Caption Generator · Images & videos are
+      never stored
+    </footer>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      // Auto-detect: works on localhost AND any deployed domain (no manual change needed)
+      const BACKEND = window.location.origin;
+
+      let videoFile = null;
+      let segments = [];
+      let selectedStyle = "clean_white";
+      let selectedFont = "Arial";
+      let captionPosition = { x: 50, y: 85 };
+      let downloadUrl = null;
+
+      // ——— Server check ———
+      async function checkServer() {
+        try {
+          const res = await fetch(`${BACKEND}/health`);
+          const data = await res.json();
+          if (data.status === "ok") {
+            document.getElementById("statusDot").classList.add("online");
+            document.getElementById("statusText").textContent =
+              "✅ AI Server online — ready to generate captions!";
+            updateButtons();
+          }
+        } catch {
+          document.getElementById("statusText").textContent =
+            "⏳ Starting AI server... please wait";
+          setTimeout(checkServer, 3000);
+        }
+      }
+      checkServer();
+
+      // ——— Video upload ———
+      document.getElementById("videoInput").addEventListener("change", (e) => {
+        if (e.target.files[0]) handleVideo(e.target.files[0]);
+      });
+
+      const uploadZone = document.getElementById("uploadZone");
+      uploadZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadZone.classList.add("drag");
+      });
+      uploadZone.addEventListener("dragleave", () =>
+        uploadZone.classList.remove("drag"),
+      );
+      uploadZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove("drag");
+        const f = Array.from(e.dataTransfer.files).find((f) =>
+          f.type.startsWith("video/"),
+        );
+        if (f) handleVideo(f);
+      });
+
+      function handleVideo(file) {
+        videoFile = file;
+        const url = URL.createObjectURL(file);
+        const video = document.getElementById("previewVideo");
+        video.src = url;
+        document.getElementById("previewWrap").classList.add("show");
+        document.getElementById("uploadZone").style.display = "none";
+        segments = [];
+        document.getElementById("transcriptWrap").classList.remove("show");
+        document.getElementById("generateBtn").disabled = true;
+        updateButtons();
+        updateCaptionStyle();
+        showToast(
+          'Video loaded! Click "Transcribe Speech" to start.',
+          "success",
+        );
+      }
+
+      // ——— Style & Font selection ———
+      function selectStyle(style, btn) {
+        selectedStyle = style;
+        document
+          .querySelectorAll(".style-btn")
+          .forEach((b) => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        updateCaptionStyle();
+      }
+
+      function selectFont(font) {
+        selectedFont = font;
+        updateCaptionStyle();
+      }
+
+      function updateCaptionStyle() {
+        const text = document.getElementById("captionPreviewText");
+        const styles = {
+          clean_white:   { color: "#fff",    background: "none",              textShadow: "0 0 4px #000,0 0 4px #000,0 0 4px #000", padding: "4px 8px", borderRadius: "" },
+          bold_yellow:   { color: "#FFD700", background: "none",              textShadow: "0 0 5px #000,0 0 5px #000",              padding: "4px 8px", borderRadius: "" },
+          black_box:     { color: "#fff",    background: "rgba(0,0,0,0.75)",  textShadow: "none",                                   padding: "6px 12px",borderRadius: "4px" },
+          neon_green:    { color: "#00ff66", background: "none",              textShadow: "0 0 8px #00ff66,0 0 4px #00ff66",        padding: "4px 8px", borderRadius: "" },
+          fire_red:      { color: "#ff2020", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000",              padding: "4px 8px", borderRadius: "" },
+          sky_blue:      { color: "#38bdf8", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000",              padding: "4px 8px", borderRadius: "" },
+          pink_pop:      { color: "#ff69b4", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000",              padding: "4px 8px", borderRadius: "" },
+          outline_only:  { color: "#fff",    background: "none",              textShadow: "-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000", padding: "4px 8px", borderRadius: "" },
+          gradient_gold: { color: "#ffaa00", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000",              padding: "4px 8px", borderRadius: "" },
+          cyan_glow:     { color: "#00ffff", background: "none",              textShadow: "0 0 8px #00ffff,0 0 4px #00ffff",        padding: "4px 8px", borderRadius: "" },
+          dark_subtitle: { color: "#fff",    background: "rgba(0,0,0,0.85)",  textShadow: "none",                                   padding: "6px 16px",borderRadius: "4px" },
+          purple_haze:   { color: "#cc00ff", background: "none",              textShadow: "0 0 8px #cc00ff,0 0 4px #cc00ff",        padding: "4px 8px", borderRadius: "" },
+        };
+        const s = styles[selectedStyle] || styles["clean_white"];
+        Object.assign(text.style, s);
+        text.style.fontFamily = selectedFont + ", sans-serif";
+      }
+
+      // ——— Draggable caption ———
+      const handle = document.getElementById("captionHandle");
+      let isDragging = false;
+      let startX, startY, startLeft, startTop;
+
+      handle.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = parseFloat(handle.style.left);
+        startTop = parseFloat(handle.style.top);
+        document.getElementById("dragHint").style.display = "none";
+        e.preventDefault();
+      });
+
+      handle.addEventListener(
+        "touchstart",
+        (e) => {
+          isDragging = true;
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          startLeft = parseFloat(handle.style.left);
+          startTop = parseFloat(handle.style.top);
+          document.getElementById("dragHint").style.display = "none";
+          e.preventDefault();
+        },
+        { passive: false },
+      );
+
+      document.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        moveCaption(e.clientX, e.clientY);
+      });
+
+      document.addEventListener(
+        "touchmove",
+        (e) => {
+          if (!isDragging) return;
+          moveCaption(e.touches[0].clientX, e.touches[0].clientY);
+        },
+        { passive: false },
+      );
+
+      document.addEventListener("mouseup", () => (isDragging = false));
+      document.addEventListener("touchend", () => (isDragging = false));
+
+      function moveCaption(clientX, clientY) {
+        const overlay = document.getElementById("captionOverlay");
+        const rect = overlay.getBoundingClientRect();
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        let newLeft = startLeft + (dx / rect.width) * 100;
+        let newTop = startTop + (dy / rect.height) * 100;
+        newLeft = Math.max(10, Math.min(90, newLeft));
+        newTop = Math.max(5, Math.min(95, newTop));
+        handle.style.left = newLeft + "%";
+        handle.style.top = newTop + "%";
+        captionPosition = { x: Math.round(newLeft), y: Math.round(newTop) };
+        document.getElementById("posX").textContent = Math.round(newLeft);
+        document.getElementById("posY").textContent = Math.round(newTop);
+      }
+
+      function setPreset(x, y) {
+        handle.style.left = x + "%";
+        handle.style.top = y + "%";
+        captionPosition = { x, y };
+        document.getElementById("posX").textContent = x;
+        document.getElementById("posY").textContent = y;
+      }
+
+      // ——— Transcribe ———
+      async function transcribeVideo() {
+        if (!videoFile) return;
+
+        document.getElementById("transcribeBtn").disabled = true;
+        document.getElementById("transcribeBtn").textContent =
+          "⏳ Transcribing...";
+        document.getElementById("progressWrap").classList.add("show");
+        setProgress(10, "Uploading video...");
+
+        try {
+          const formData = new FormData();
+          formData.append("video", videoFile);
+
+          setProgress(30, "AI is listening to your speech...");
+
+          const res = await fetch(`${BACKEND}/transcribe`, {
+            method: "POST",
+            body: formData,
+          });
+
+          setProgress(80, "Processing transcription...");
+
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+
+          segments = data.segments;
+          setProgress(100, `✅ Found ${segments.length} caption segments!`);
+
+          renderSegments();
+          document.getElementById("transcriptWrap").classList.add("show");
+          document.getElementById("generateBtn").disabled = false;
+          document.getElementById("transcribeBtn").textContent =
+            "🔄 Re-Transcribe";
+          document.getElementById("transcribeBtn").disabled = false;
+
+          // Update caption preview with first segment
+          if (segments.length > 0) {
+            document.getElementById("captionPreviewText").textContent =
+              segments[0].text;
+          }
+
+          showToast(
+            `Transcribed ${segments.length} segments! Edit if needed, then burn captions.`,
+            "success",
+          );
+        } catch (err) {
+          setProgress(0, "");
+          document.getElementById("progressWrap").classList.remove("show");
+          document.getElementById("transcribeBtn").disabled = false;
+          document.getElementById("transcribeBtn").textContent =
+            "🎙 Transcribe Speech";
+          showToast("Error: " + err.message, "error");
+        }
+      }
+
+      function renderSegments() {
+        const list = document.getElementById("segmentList");
+        list.innerHTML = "";
+        segments.forEach((seg, i) => {
+          const div = document.createElement("div");
+          div.className = "segment-item";
+          const timeStr = formatTime(seg.start) + " → " + formatTime(seg.end);
+          div.innerHTML = `
+        <div class="segment-time">${timeStr}</div>
+        <textarea class="segment-text" rows="2" onchange="updateSegment(${i}, this.value)">${seg.text}</textarea>
+      `;
+          list.appendChild(div);
+        });
+      }
+
+      function updateSegment(index, value) {
+        segments[index].text = value;
+      }
+
+      function formatTime(sec) {
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${s.toString().padStart(2, "0")}`;
+      }
+
+      // ——— Generate ———
+      async function generateCaptions() {
+        if (!videoFile || segments.length === 0) return;
+
+        document.getElementById("generateBtn").disabled = true;
+        document.getElementById("generateBtn").textContent =
+          "⏳ Burning captions...";
+        document.getElementById("progressWrap").classList.add("show");
+        setProgress(50, "Burning captions into video...");
+
+        try {
+          // Send segments and settings to backend first
+          const formData = new FormData();
+          formData.append("video", videoFile);
+          formData.append("segments", JSON.stringify(segments));
+          formData.append("style", selectedStyle);
+          formData.append("font", selectedFont);
+          formData.append("position", JSON.stringify(captionPosition));
+
+          setProgress(70, "Processing with FFmpeg...");
+
+          // Use XMLHttpRequest instead of fetch for large file download
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", `${BACKEND}/generate`, true);
+          xhr.responseType = "blob";
+
+          xhr.onprogress = function (e) {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100);
+              setProgress(70 + pct * 0.3, `Downloading... ${pct}%`);
+            }
+          };
+
+          xhr.onload = function () {
+            if (xhr.status === 200) {
+              const blob = xhr.response;
+              const url = URL.createObjectURL(blob);
+
+              // Detect iOS/iPadOS Safari — anchor.click() doesn't download there
+              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+              if (isIOS) {
+                // On iPad/iPhone Safari, open the blob URL in a new tab so the
+                // user can long-press → Save Video, or use the share sheet
+                window.open(url, '_blank');
+                setProgress(100, "✅ Video ready — use Share to save!");
+                showToast("✅ Video opened! Tap Share → Save Video to keep it.", "success");
+              } else {
+                // Desktop Chrome/Firefox/Edge — standard anchor download
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "captioned_video.mp4";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setProgress(100, "✅ Download started!");
+                showToast("✅ Your captioned video is downloading!", "success");
+              }
+
+              setTimeout(() => URL.revokeObjectURL(url), 60000);
+              document.getElementById("generateBtn").disabled = false;
+              document.getElementById("generateBtn").textContent = "🎬 Burn Again";
+            } else {
+              // Try to read error message from response
+              const reader = new FileReader();
+              reader.onload = function () {
+                try {
+                  const err = JSON.parse(reader.result);
+                  showToast("Error: " + (err.error || "Server error"), "error");
+                } catch {
+                  showToast("Server error — try again", "error");
+                }
+              };
+              reader.readAsText(xhr.response);
+              document.getElementById("generateBtn").disabled = false;
+              document.getElementById("generateBtn").textContent = "🎬 Burn Captions & Download";
+            }
+          };
+          xhr.onerror = function () {
+            document.getElementById("generateBtn").disabled = false;
+            document.getElementById("generateBtn").textContent =
+              "🎬 Burn Captions & Download";
+            showToast("Network error — try again", "error");
+          };
+
+          xhr.send(formData);
+        } catch (err) {
+          document.getElementById("generateBtn").disabled = false;
+          document.getElementById("generateBtn").textContent =
+            "🎬 Burn Captions & Download";
+          showToast("Error: " + err.message, "error");
+        }
+      }
+      function setProgress(pct, label) {
+        document.getElementById("progressFill").style.width = pct + "%";
+        document.getElementById("progressLabel").textContent = label;
+      }
+
+      function updateButtons() {
+        const online = document
+          .getElementById("statusDot")
+          .classList.contains("online");
+        document.getElementById("transcribeBtn").disabled = !(
+          videoFile && online
+        );
+      }
+
+      // ——— Toast ———
+      let toastTimer;
+      function showToast(msg, type = "") {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.className = `toast show ${type}`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("show"), 5000);
+      }
+    </script>
+  </body>
+</html>
