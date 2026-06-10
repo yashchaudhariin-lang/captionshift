@@ -32,14 +32,11 @@ def get_ass_style(style, video_width, video_height, position, font="Arial"):
     margin_v = int((1 - y_pct / 100) * video_height)
     margin_v = max(0, min(margin_v, video_height))
 
-    # ASS colour format: &HAABBGGRR  (AA=alpha, 00=opaque)
     styles = {
-        # Original 4
         "clean_white": f"Style: Default,{font},22,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,2,0,2,10,10,{margin_v},0",
         "bold_yellow": f"Style: Default,{font},24,&H0000FFFF,&H0000FFFF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,2,1,2,10,10,{margin_v},0",
         "black_box":   f"Style: Default,{font},20,&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,3,1,0,2,10,10,{margin_v},0",
         "neon_green":  f"Style: Default,{font},22,&H0000FF00,&H0000FF00,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,2,0,2,10,10,{margin_v},0",
-        # New 8
         "fire_red":    f"Style: Default,{font},22,&H000000FF,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,2,0,2,10,10,{margin_v},0",
         "sky_blue":    f"Style: Default,{font},22,&H00FFD700,&H00FFD700,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,2,0,2,10,10,{margin_v},0",
         "pink_pop":    f"Style: Default,{font},22,&H00FF69B4,&H00FF69B4,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,2,0,2,10,10,{margin_v},0",
@@ -177,10 +174,7 @@ def generate():
 
         output_path = os.path.join(UPLOAD_FOLDER, f"{job_id}_out.mp4")
 
-        # FFmpeg's filtergraph parser chokes on colons (Windows drive letters)
-        # and quotes in paths. Safest cross-platform fix: use a short filename
-        # with no special characters and run FFmpeg with cwd=UPLOAD_FOLDER.
-        safe_ass_name = f"{job_id}.ass"   # already in UPLOAD_FOLDER, no path chars needed
+        safe_ass_name = f"{job_id}.ass"
         safe_out_name = f"{job_id}_out.mp4"
 
         cmd = [
@@ -203,38 +197,21 @@ def generate():
         if result.returncode != 0:
             print("FFmpeg stderr:", result.stderr[-2000:])
             return jsonify({'error': 'FFmpeg failed: ' + result.stderr[-500:]}), 500
-        print(f"FFmpeg succeeded, output exists: {os.path.exists(output_path)}")
-        if os.path.exists(output_path):
-            print(f"Output file size on disk: {os.path.getsize(output_path)} bytes")
 
-        print(f"Output file ready, reading into memory...")
-        # Read into memory first so we can clean up files safely
-        with open(output_path, 'rb') as fh:
-            video_data = fh.read()
-
-        print(f"Output file size: {len(video_data)} bytes")
-
-        # Cleanup all temp files now that we have data in memory
-        for f in [video_path, ass_path, output_path]:
+        # Clean up input and ass files, keep output for /download endpoint
+        for f in [video_path, ass_path]:
             try:
                 if f and os.path.exists(f):
                     os.remove(f)
             except Exception as ex:
                 print(f"Cleanup warning: {ex}")
 
-        from flask import Response
-        return Response(
-            video_data,
-            mimetype='video/mp4',
-            headers={
-                'Content-Disposition': 'attachment; filename="captioned_video.mp4"',
-                'Content-Length': str(len(video_data)),
-                'Cache-Control': 'no-cache',
-            }
-        )
+        print(f"Output ready: {output_path} ({os.path.getsize(output_path)} bytes)")
+
+        # Return job_id so frontend can call /download/<job_id>
+        return jsonify({'job_id': job_id})
 
     except Exception as e:
-        # Cleanup on error
         for f in [video_path, ass_path, output_path]:
             if f:
                 try:
@@ -245,6 +222,39 @@ def generate():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/download/<job_id>', methods=['GET'])
+def download(job_id):
+    # Only allow alphanumeric job_ids to prevent path traversal
+    if not job_id.isalnum():
+        return jsonify({'error': 'Invalid job id'}), 400
+
+    output_path = os.path.join(UPLOAD_FOLDER, f"{job_id}_out.mp4")
+
+    if not os.path.exists(output_path):
+        return jsonify({'error': 'File not found or already downloaded'}), 404
+
+    def cleanup():
+        try:
+            os.remove(output_path)
+            print(f"Cleaned up: {output_path}")
+        except Exception as e:
+            print(f"Cleanup error: {e}")
+
+    response = send_file(
+        output_path,
+        mimetype='video/mp4',
+        as_attachment=True,
+        download_name='captioned_video.mp4'
+    )
+
+    # Delete file after response is sent
+    @response.call_on_close
+    def on_close():
+        cleanup()
+
+    return response
+
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5001))
+    port = int(os.environ.get('PORT', 7860))
     app.run(host='0.0.0.0', port=port, debug=False)
