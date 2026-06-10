@@ -838,15 +838,14 @@
     <div class="toast" id="toast"></div>
 
     <script>
-      // Auto-detect: works on localhost AND any deployed domain (no manual change needed)
-      //const BACKEND = window.location.origin;
       const BACKEND = "https://yash4940-captionshift-backend.hf.space";
+
       let videoFile = null;
       let segments = [];
       let selectedStyle = "clean_white";
       let selectedFont = "Arial";
       let captionPosition = { x: 50, y: 85 };
-      let downloadUrl = null;
+      let lastJobId = null;
 
       // ——— Server check ———
       async function checkServer() {
@@ -897,8 +896,10 @@
         document.getElementById("previewWrap").classList.add("show");
         document.getElementById("uploadZone").style.display = "none";
         segments = [];
+        lastJobId = null;
         document.getElementById("transcriptWrap").classList.remove("show");
         document.getElementById("generateBtn").disabled = true;
+        document.getElementById("downloadBtn").classList.remove("show");
         updateButtons();
         updateCaptionStyle();
         showToast(
@@ -1049,7 +1050,6 @@
             "🔄 Re-Transcribe";
           document.getElementById("transcribeBtn").disabled = false;
 
-          // Update caption preview with first segment
           if (segments.length > 0) {
             document.getElementById("captionPreviewText").textContent =
               segments[0].text;
@@ -1099,13 +1099,11 @@
         if (!videoFile || segments.length === 0) return;
 
         document.getElementById("generateBtn").disabled = true;
-        document.getElementById("generateBtn").textContent =
-          "⏳ Burning captions...";
+        document.getElementById("generateBtn").textContent = "⏳ Burning captions...";
         document.getElementById("progressWrap").classList.add("show");
-        setProgress(50, "Burning captions into video...");
+        setProgress(20, "Uploading video...");
 
         try {
-          // Send segments and settings to backend first
           const formData = new FormData();
           formData.append("video", videoFile);
           formData.append("segments", JSON.stringify(segments));
@@ -1113,81 +1111,42 @@
           formData.append("font", selectedFont);
           formData.append("position", JSON.stringify(captionPosition));
 
-          setProgress(70, "Processing with FFmpeg...");
+          setProgress(50, "Burning captions into video...");
 
-          // Use XMLHttpRequest instead of fetch for large file download
-          const xhr = new XMLHttpRequest();
-          xhr.open("POST", `${BACKEND}/generate`, true);
-          xhr.responseType = "blob";
+          const res = await fetch(`${BACKEND}/generate`, {
+            method: "POST",
+            body: formData,
+          });
 
-          xhr.onprogress = function (e) {
-            if (e.lengthComputable) {
-              const pct = Math.round((e.loaded / e.total) * 100);
-              setProgress(70 + pct * 0.3, `Downloading... ${pct}%`);
-            }
-          };
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
 
-          xhr.onload = function () {
-            if (xhr.status === 200) {
-              const blob = xhr.response;
-              const url = URL.createObjectURL(blob);
+          const jobId = data.job_id;
+          lastJobId = jobId;
+          const downloadUrl = `${BACKEND}/download/${jobId}`;
 
-              // Detect iOS/iPadOS Safari — anchor.click() doesn't download there
-              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+          setProgress(100, "✅ Done! Starting download...");
 
-              if (isIOS) {
-                // On iPad/iPhone Safari, open the blob URL in a new tab so the
-                // user can long-press → Save Video, or use the share sheet
-                window.open(url, '_blank');
-                setProgress(100, "✅ Video ready — use Share to save!");
-                showToast("✅ Video opened! Tap Share → Save Video to keep it.", "success");
-              } else {
-                // Desktop Chrome/Firefox/Edge — standard anchor download
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "captioned_video.mp4";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setProgress(100, "✅ Download started!");
-                showToast("✅ Your captioned video is downloading!", "success");
-              }
+          // Use direct URL — works on ALL devices including iPad Safari/Chrome/Brave
+          window.location.href = downloadUrl;
 
-              setTimeout(() => URL.revokeObjectURL(url), 60000);
-              document.getElementById("generateBtn").disabled = false;
-              document.getElementById("generateBtn").textContent = "🎬 Burn Again";
-            } else {
-              // Try to read error message from response
-              const reader = new FileReader();
-              reader.onload = function () {
-                try {
-                  const err = JSON.parse(reader.result);
-                  showToast("Error: " + (err.error || "Server error"), "error");
-                } catch {
-                  showToast("Server error — try again", "error");
-                }
-              };
-              reader.readAsText(xhr.response);
-              document.getElementById("generateBtn").disabled = false;
-              document.getElementById("generateBtn").textContent = "🎬 Burn Captions & Download";
-            }
-          };
-          xhr.onerror = function () {
-            document.getElementById("generateBtn").disabled = false;
-            document.getElementById("generateBtn").textContent =
-              "🎬 Burn Captions & Download";
-            showToast("Network error — try again", "error");
-          };
+          // Show Download Again button
+          const dlBtn = document.getElementById("downloadBtn");
+          dlBtn.classList.add("show");
+          dlBtn.onclick = () => { window.location.href = downloadUrl; };
 
-          xhr.send(formData);
+          document.getElementById("generateBtn").disabled = false;
+          document.getElementById("generateBtn").textContent = "🎬 Burn Again";
+
+          showToast("✅ Download started!", "success");
+
         } catch (err) {
           document.getElementById("generateBtn").disabled = false;
-          document.getElementById("generateBtn").textContent =
-            "🎬 Burn Captions & Download";
+          document.getElementById("generateBtn").textContent = "🎬 Burn Captions & Download";
           showToast("Error: " + err.message, "error");
         }
       }
+
       function setProgress(pct, label) {
         document.getElementById("progressFill").style.width = pct + "%";
         document.getElementById("progressLabel").textContent = label;
