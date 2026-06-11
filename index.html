@@ -1127,13 +1127,25 @@
 
           setProgress(100, "✅ Done! Starting download...");
 
-          // Use direct URL — works on ALL devices including iPad Safari/Chrome/Brave
-          window.location.href = downloadUrl;
+          // Use anchor click — triggers native iOS "Save to Files" sheet on iPad/iPhone
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = 'captioned_video.mp4';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
 
           // Show Download Again button
           const dlBtn = document.getElementById("downloadBtn");
           dlBtn.classList.add("show");
-          dlBtn.onclick = () => { window.location.href = downloadUrl; };
+          dlBtn.onclick = () => {
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = 'captioned_video.mp4';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          };
 
           document.getElementById("generateBtn").disabled = false;
           document.getElementById("generateBtn").textContent = "🎬 Burn Again";
