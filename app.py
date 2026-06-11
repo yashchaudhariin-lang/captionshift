@@ -242,7 +242,7 @@ def download(job_id):
 
     response = send_file(
         output_path,
-        mimetype='video/mp4',
+        mimetype='application/octet-stream',
         as_attachment=True,
         download_name='captioned_video.mp4'
     )
