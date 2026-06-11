@@ -1127,25 +1127,28 @@
 
           setProgress(100, "✅ Done! Starting download...");
 
-          // Use anchor click — triggers native iOS "Save to Files" sheet on iPad/iPhone
-          const a = document.createElement('a');
-          a.href = downloadUrl;
-          a.download = 'captioned_video.mp4';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+          // Fetch as blob so Safari on iPad shows "Save to Files" instead of playing inline
+          async function triggerDownload(url, filename) {
+            const r = await fetch(url);
+            const blob = await r.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(blobUrl);
+            }, 1000);
+          }
+
+          triggerDownload(downloadUrl, "captioned_video.mp4");
 
           // Show Download Again button
           const dlBtn = document.getElementById("downloadBtn");
           dlBtn.classList.add("show");
-          dlBtn.onclick = () => {
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = 'captioned_video.mp4';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          };
+          dlBtn.onclick = () => { triggerDownload(downloadUrl, "captioned_video.mp4"); };
 
           document.getElementById("generateBtn").disabled = false;
           document.getElementById("generateBtn").textContent = "🎬 Burn Again";
