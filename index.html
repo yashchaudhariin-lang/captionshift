@@ -28,6 +28,12 @@
       rel="stylesheet"
     />
 
+    <!-- Custom caption fonts (browser preview only — burning uses bundled .ttf files) -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Oswald:wght@700&family=Pacifico&family=Bebas+Neue&family=Dancing+Script:wght@700&family=Anton&family=Righteous&family=Lobster&family=Amatic+SC:wght@700&display=swap"
+      rel="stylesheet"
+    />
+
     <style>
       :root {
         --bg: #080810;
@@ -109,6 +115,20 @@
         -webkit-text-fill-color: transparent;
         background-clip: text;
         line-height: 1;
+        display: inline-block;
+      }
+
+      .version-badge {
+        display: inline-block;
+        font-family: "Syne", sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 999px;
+        vertical-align: super;
+        margin-left: 6px;
       }
 
       .tagline {
@@ -282,6 +302,7 @@
         text-align: center;
         white-space: nowrap;
         line-height: 1.4;
+        transition: all 0.15s ease;
       }
 
       /* Drag hint */
@@ -328,6 +349,12 @@
       .font-picker:hover, .font-picker:focus {
         border-color: var(--accent);
       }
+      .font-picker optgroup {
+        font-family: "Inter", sans-serif;
+        font-style: normal;
+        font-weight: 700;
+        color: var(--accent);
+      }
       .font-label {
         font-size: 12px;
         color: var(--muted);
@@ -335,12 +362,55 @@
         display: block;
       }
 
+      /* Size selector */
+      .size-options {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .size-btn {
+        padding: 10px 4px;
+        border-radius: 10px;
+        border: 2px solid var(--border);
+        background: var(--bg);
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.2s;
+        color: var(--text);
+        font-family: "Inter", sans-serif;
+      }
+      .size-btn:hover { border-color: var(--accent); }
+      .size-btn.selected { border-color: var(--accent); background: rgba(108,99,255,0.1); }
+      .size-btn .size-letter { font-weight: 800; display:block; }
+      .size-btn .size-name { font-size: 10px; color: var(--muted); margin-top: 2px; display:block; }
+
       /* Style selector */
+      .style-options-wrap {
+        max-height: 320px;
+        overflow-y: auto;
+        padding-right: 4px;
+        margin-top: 14px;
+      }
+      .style-options-wrap::-webkit-scrollbar { width: 4px; }
+      .style-options-wrap::-webkit-scrollbar-track { background: transparent; }
+      .style-options-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
       .style-options {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
         gap: 8px;
       }
+
+      .style-group-label {
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 700;
+        margin: 14px 0 8px;
+      }
+      .style-group-label:first-child { margin-top: 0; }
 
       .style-btn {
         padding: 10px 8px;
@@ -571,9 +641,9 @@
   <body>
     <div class="wrapper">
       <header>
-        <div class="logo">CaptionShift</div>
+        <div class="logo">CaptionShift<span class="version-badge">v2</span></div>
         <div class="tagline">
-          Free AI Auto Captions · Drag to Position · No Signup
+          Free AI Auto Captions · High Quality · Drag to Position
         </div>
       </header>
 
@@ -593,7 +663,7 @@
               <div class="upload-icon">🎬</div>
               <div class="upload-label">Drag & drop your video here</div>
               <div class="upload-sub">
-                MP4, MOV, AVI supported · Up to 10 minutes
+                MP4, MOV, AVI supported · Up to 10 minutes · Original quality preserved
               </div>
             </div>
 
@@ -633,22 +703,59 @@
             <!-- Font Picker -->
             <span class="font-label">🔤 Font</span>
             <select class="font-picker" id="fontPicker" onchange="selectFont(this.value)">
-              <option value="Arial">Arial — Clean &amp; Neutral</option>
-              <option value="Impact">Impact — Bold / Meme</option>
-              <option value="Helvetica">Helvetica — Minimal / Pro</option>
-              <option value="Georgia">Georgia — Elegant / Editorial</option>
-              <option value="Courier New">Courier New — Typewriter</option>
-              <option value="Trebuchet MS">Trebuchet MS — Friendly</option>
-              <option value="Comic Sans MS">Comic Sans — Casual / Fun</option>
-              <option value="Verdana">Verdana — Very Readable</option>
-              <option value="Tahoma">Tahoma — Crisp / Compact</option>
-              <option value="Palatino Linotype">Palatino — Cinematic</option>
-              <option value="Century Gothic">Century Gothic — Geometric</option>
-              <option value="Times New Roman">Times New Roman — Classic</option>
+              <optgroup label="✨ Custom Fonts">
+                <option value="Montserrat">Montserrat — Modern Bold</option>
+                <option value="Oswald">Oswald — Tall Condensed</option>
+                <option value="Anton">Anton — Heavy Display</option>
+                <option value="Bebas Neue">Bebas Neue — Impact Caps</option>
+                <option value="Righteous">Righteous — Retro Rounded</option>
+                <option value="Pacifico">Pacifico — Handwriting</option>
+                <option value="Lobster">Lobster — Playful Script</option>
+                <option value="Dancing Script">Dancing Script — Elegant Cursive</option>
+                <option value="Amatic SC">Amatic SC — Thin Handwritten</option>
+              </optgroup>
+              <optgroup label="System Fonts">
+                <option value="Arial">Arial — Clean &amp; Neutral</option>
+                <option value="Impact">Impact — Bold / Meme</option>
+                <option value="Helvetica">Helvetica — Minimal / Pro</option>
+                <option value="Georgia">Georgia — Elegant / Editorial</option>
+                <option value="Courier New">Courier New — Typewriter</option>
+                <option value="Trebuchet MS">Trebuchet MS — Friendly</option>
+                <option value="Comic Sans MS">Comic Sans — Casual / Fun</option>
+                <option value="Verdana">Verdana — Very Readable</option>
+                <option value="Tahoma">Tahoma — Crisp / Compact</option>
+                <option value="Palatino Linotype">Palatino — Cinematic</option>
+                <option value="Century Gothic">Century Gothic — Geometric</option>
+                <option value="Times New Roman">Times New Roman — Classic</option>
+              </optgroup>
             </select>
 
+            <!-- Font Size -->
+            <span class="font-label" style="margin-top:14px;">📏 Font Size</span>
+            <div class="size-options">
+              <div class="size-btn" onclick="selectSize('small', this)">
+                <span class="size-letter" style="font-size:14px;">A</span>
+                <span class="size-name">Small</span>
+              </div>
+              <div class="size-btn selected" onclick="selectSize('medium', this)">
+                <span class="size-letter" style="font-size:18px;">A</span>
+                <span class="size-name">Medium</span>
+              </div>
+              <div class="size-btn" onclick="selectSize('large', this)">
+                <span class="size-letter" style="font-size:22px;">A</span>
+                <span class="size-name">Large</span>
+              </div>
+              <div class="size-btn" onclick="selectSize('xlarge', this)">
+                <span class="size-letter" style="font-size:26px;">A</span>
+                <span class="size-name">XL</span>
+              </div>
+            </div>
+
             <!-- Style Buttons -->
-            <div style="margin-top:14px;">
+            <span class="font-label" style="margin-top:14px;">🎭 Color Theme</span>
+            <div class="style-options-wrap">
+
+            <div class="style-group-label">Bold &amp; Bright</div>
             <div class="style-options">
               <div class="style-btn selected" onclick="selectStyle('clean_white', this)">
                 <div class="style-sample" style="color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;">Aa</div>
@@ -699,6 +806,39 @@
                 <div class="style-name">Purple Haze</div>
               </div>
             </div>
+
+            <div class="style-group-label">✨ Elegant (New)</div>
+            <div class="style-options">
+              <div class="style-btn" onclick="selectStyle('ivory_classic', this)">
+                <div class="style-sample" style="color:#fffff0;text-shadow:0 0 3px #2b1d14,0 0 3px #2b1d14;">Aa</div>
+                <div class="style-name">Ivory Classic</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('rose_gold', this)">
+                <div class="style-sample" style="color:#f0c9c0;text-shadow:0 0 3px #5a2e27,0 0 3px #5a2e27;">Aa</div>
+                <div class="style-name">Rose Gold</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('ice_blue', this)">
+                <div class="style-sample" style="color:#cfefff;text-shadow:0 0 3px #0e2a3d,0 0 3px #0e2a3d;">Aa</div>
+                <div class="style-name">Ice Blue</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('mint_glow', this)">
+                <div class="style-sample" style="color:#9cffd0;text-shadow:0 0 6px #003322,0 0 6px #9cffd0;">Aa</div>
+                <div class="style-name">Mint Glow</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('sunset_coral', this)">
+                <div class="style-sample" style="color:#ff7e5f;text-shadow:0 0 3px #3a0e04,0 0 3px #3a0e04;">Aa</div>
+                <div class="style-name">Sunset Coral</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('royal_purple_box', this)">
+                <div class="style-sample" style="color:#fff;background:rgba(45,10,78,0.9);padding:2px 8px;border-radius:3px;">Aa</div>
+                <div class="style-name">Royal Purple</div>
+              </div>
+              <div class="style-btn" onclick="selectStyle('cinema_subtitle', this)">
+                <div class="style-sample" style="color:#f5f5f5;background:rgba(0,0,0,0.9);padding:2px 10px;border-radius:3px;letter-spacing:0.1em;">Aa</div>
+                <div class="style-name">Cinema</div>
+              </div>
+            </div>
+
             </div>
           </div>
 
@@ -823,6 +963,7 @@
               • Use good microphone or minimal background noise<br />
               • Works with English and Hindi<br />
               • Edit captions after transcription if needed<br />
+              • v2: output keeps your original video quality<br />
               • Processing takes 1-3 mins for short videos
             </p>
           </div>
@@ -831,19 +972,22 @@
     </div>
 
     <footer>
-      © 2026 CaptionShift · Free AI Caption Generator · Images & videos are
+      © 2026 CaptionShift v2 · Free AI Caption Generator · Images & videos are
       never stored
     </footer>
 
     <div class="toast" id="toast"></div>
 
     <script>
-      const BACKEND = "https://yash4940-captionshift-backend.hf.space";
+      // Auto-detect backend — works locally (python app.py) and on Hugging Face
+      // since app.py now serves this file from the same origin.
+      const BACKEND = window.location.origin;
 
       let videoFile = null;
       let segments = [];
       let selectedStyle = "clean_white";
-      let selectedFont = "Arial";
+      let selectedFont = "Montserrat";
+      let selectedSize = "medium";
       let captionPosition = { x: 50, y: 85 };
       let lastJobId = null;
 
@@ -908,11 +1052,11 @@
         );
       }
 
-      // ——— Style & Font selection ———
+      // ——— Style, Font & Size selection ———
       function selectStyle(style, btn) {
         selectedStyle = style;
         document
-          .querySelectorAll(".style-btn")
+          .querySelectorAll(".style-options .style-btn")
           .forEach((b) => b.classList.remove("selected"));
         btn.classList.add("selected");
         updateCaptionStyle();
@@ -923,25 +1067,56 @@
         updateCaptionStyle();
       }
 
+      function selectSize(size, btn) {
+        selectedSize = size;
+        document
+          .querySelectorAll(".size-btn")
+          .forEach((b) => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        updateCaptionStyle();
+      }
+
+      const SIZE_PX = { small: 13, medium: 16, large: 20, xlarge: 26 };
+
       function updateCaptionStyle() {
         const text = document.getElementById("captionPreviewText");
         const styles = {
-          clean_white:   { color: "#fff",    background: "none",              textShadow: "0 0 4px #000,0 0 4px #000,0 0 4px #000", padding: "4px 8px", borderRadius: "" },
-          bold_yellow:   { color: "#FFD700", background: "none",              textShadow: "0 0 5px #000,0 0 5px #000",              padding: "4px 8px", borderRadius: "" },
-          black_box:     { color: "#fff",    background: "rgba(0,0,0,0.75)",  textShadow: "none",                                   padding: "6px 12px",borderRadius: "4px" },
-          neon_green:    { color: "#00ff66", background: "none",              textShadow: "0 0 8px #00ff66,0 0 4px #00ff66",        padding: "4px 8px", borderRadius: "" },
-          fire_red:      { color: "#ff2020", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000",              padding: "4px 8px", borderRadius: "" },
-          sky_blue:      { color: "#38bdf8", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000",              padding: "4px 8px", borderRadius: "" },
-          pink_pop:      { color: "#ff69b4", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000",              padding: "4px 8px", borderRadius: "" },
-          outline_only:  { color: "#fff",    background: "none",              textShadow: "-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000", padding: "4px 8px", borderRadius: "" },
-          gradient_gold: { color: "#ffaa00", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000",              padding: "4px 8px", borderRadius: "" },
-          cyan_glow:     { color: "#00ffff", background: "none",              textShadow: "0 0 8px #00ffff,0 0 4px #00ffff",        padding: "4px 8px", borderRadius: "" },
-          dark_subtitle: { color: "#fff",    background: "rgba(0,0,0,0.85)",  textShadow: "none",                                   padding: "6px 16px",borderRadius: "4px" },
-          purple_haze:   { color: "#cc00ff", background: "none",              textShadow: "0 0 8px #cc00ff,0 0 4px #cc00ff",        padding: "4px 8px", borderRadius: "" },
+          // Bold & Bright
+          clean_white:   { color: "#fff",    background: "none",              textShadow: "0 0 4px #000,0 0 4px #000,0 0 4px #000" },
+          bold_yellow:   { color: "#FFD700", background: "none",              textShadow: "0 0 5px #000,0 0 5px #000" },
+          black_box:     { color: "#fff",    background: "rgba(0,0,0,0.75)",  textShadow: "none", borderRadius: "4px" },
+          neon_green:    { color: "#00ff66", background: "none",              textShadow: "0 0 8px #00ff66,0 0 4px #00ff66" },
+          fire_red:      { color: "#ff2020", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
+          sky_blue:      { color: "#38bdf8", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
+          pink_pop:      { color: "#ff69b4", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
+          outline_only:  { color: "#fff",    background: "none",              textShadow: "-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000" },
+          gradient_gold: { color: "#ffaa00", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
+          cyan_glow:     { color: "#00ffff", background: "none",              textShadow: "0 0 8px #00ffff,0 0 4px #00ffff" },
+          dark_subtitle: { color: "#fff",    background: "rgba(0,0,0,0.85)",  textShadow: "none", borderRadius: "4px" },
+          purple_haze:   { color: "#cc00ff", background: "none",              textShadow: "0 0 8px #cc00ff,0 0 4px #cc00ff" },
+          // Elegant (v2)
+          ivory_classic:    { color: "#fffff0", background: "none", textShadow: "0 0 3px #2b1d14,0 0 3px #2b1d14" },
+          rose_gold:        { color: "#f0c9c0", background: "none", textShadow: "0 0 3px #5a2e27,0 0 3px #5a2e27" },
+          ice_blue:         { color: "#cfefff", background: "none", textShadow: "0 0 3px #0e2a3d,0 0 3px #0e2a3d" },
+          mint_glow:        { color: "#9cffd0", background: "none", textShadow: "0 0 8px #003322,0 0 6px #9cffd0" },
+          sunset_coral:     { color: "#ff7e5f", background: "none", textShadow: "0 0 3px #3a0e04,0 0 3px #3a0e04" },
+          royal_purple_box: { color: "#fff", background: "rgba(45,10,78,0.9)", textShadow: "none", borderRadius: "4px" },
+          cinema_subtitle:  { color: "#f5f5f5", background: "rgba(0,0,0,0.9)", textShadow: "none", borderRadius: "3px", letterSpacing: "0.12em" },
         };
         const s = styles[selectedStyle] || styles["clean_white"];
+
+        // Reset before applying
+        text.style.textShadow = "none";
+        text.style.background = "none";
+        text.style.borderRadius = "0";
+        text.style.letterSpacing = "normal";
+        text.style.padding = "4px 8px";
+
         Object.assign(text.style, s);
-        text.style.fontFamily = selectedFont + ", sans-serif";
+        if (s.background !== "none") text.style.padding = "6px 12px";
+
+        text.style.fontFamily = `"${selectedFont}", sans-serif`;
+        text.style.fontSize = (SIZE_PX[selectedSize] || 16) + "px";
       }
 
       // ——— Draggable caption ———
@@ -1109,9 +1284,10 @@
           formData.append("segments", JSON.stringify(segments));
           formData.append("style", selectedStyle);
           formData.append("font", selectedFont);
+          formData.append("font_size", selectedSize);
           formData.append("position", JSON.stringify(captionPosition));
 
-          setProgress(50, "Burning captions into video...");
+          setProgress(50, "Burning captions at original quality...");
 
           const res = await fetch(`${BACKEND}/generate`, {
             method: "POST",
@@ -1185,6 +1361,9 @@
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => t.classList.remove("show"), 5000);
       }
+
+      // Initialize preview style on load
+      updateCaptionStyle();
     </script>
   </body>
 </html>

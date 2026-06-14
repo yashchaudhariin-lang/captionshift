@@ -1,72 +1,115 @@
-# CaptionShift — Setup Instructions
+# CaptionShift — v2
 
-## LOCAL TESTING (do this first!)
+## What's New in v2
 
-### Step 1 — Install dependencies
-Open terminal in this folder and run:
+### 1. Quality Fix (the big one)
+Previous versions re-encoded everything with CRF 23, which visibly reduced
+quality and shrank file size dramatically (100MB → 10MB).
+
+v2 now:
+- Encodes video at **CRF 16** (visually lossless) with `preset medium`
+- **Copies the audio stream untouched** (`-c:a copy`) — zero audio quality loss
+- Keeps `pix_fmt yuv420p` for compatibility and adds `+faststart` for instant playback
+- Falls back to AAC 192k re-encode only if the original audio codec can't be
+  copied into MP4 (rare)
+
+Output file size and quality will now be very close to your original video —
+no more "AI-generated" washed-out look.
+
+### 2. 9 New Bundled Fonts
+These are embedded in the app (in the `fonts/` folder) and burned directly
+into the video — no installation needed:
+
+| Font | Vibe |
+|---|---|
+| Montserrat (Bold) | Modern, clean, geometric |
+| Oswald (Bold) | Tall, condensed, YouTube-style |
+| Anton | Heavy display, dramatic |
+| Bebas Neue | All-caps impact, Reels/Shorts |
+| Righteous | Retro rounded |
+| Pacifico | Handwriting script |
+| Lobster | Playful script |
+| Dancing Script (Bold) | Elegant cursive |
+| Amatic SC (Bold) | Thin handwritten |
+
+Plus the original 12 system fonts (Arial, Impact, Helvetica, Georgia, etc.)
+are still available.
+
+### 3. Font Size Control
+New Small / Medium / Large / XL selector. Size is calculated as a percentage
+of your video's height, so captions scale correctly no matter the resolution.
+
+### 4. 7 New Elegant Color Themes
+Added under a new "✨ Elegant" group in the style picker:
+
+- Ivory Classic
+- Rose Gold
+- Ice Blue
+- Mint Glow
+- Sunset Coral
+- Royal Purple (box)
+- Cinema (letter-spaced subtitle box)
+
+Total: 19 color themes now available.
+
+### 5. Auto Backend Detection
+`app.py` now serves `index.html` itself (Flask `/` route), and the frontend
+auto-detects its backend URL via `window.location.origin`. This means:
+- **Local testing**: run `python app.py`, open `http://localhost:7860` — works immediately
+- **Hugging Face deploy**: works automatically, no URL editing needed
+
+---
+
+## How to Test Locally
+
+1. Make sure this folder structure is intact:
 ```
-python -m pip install flask flask-cors openai-whisper torch numpy
+captionshift/
+├── app.py
+├── index.html
+├── fonts/
+│   ├── Montserrat-Bold.ttf
+│   ├── Oswald-Bold.ttf
+│   ├── Pacifico-Regular.ttf
+│   ├── BebasNeue-Regular.ttf
+│   ├── DancingScript-Bold.ttf
+│   ├── Anton-Regular.ttf
+│   ├── Righteous-Regular.ttf
+│   ├── Lobster-Regular.ttf
+│   └── AmaticSC-Bold.ttf
+├── Dockerfile
+├── requirements.txt
+└── README.md
 ```
-This takes 5-10 minutes (downloads Whisper + PyTorch).
 
-### Step 2 — Start the backend
+2. Run:
 ```
 python app.py
 ```
-Wait until you see: "Whisper model loaded! Ready."
 
-### Step 3 — Open the frontend
-Open Chrome/Brave and go to: http://localhost:5001
-(The app now serves itself — no need to open index.html separately)
+3. Open your browser to:
+```
+http://localhost:7860
+```
 
-### Step 4 — Test it
-1. Upload a video
-2. Drag the caption label to position it
-3. Choose a style
-4. Click "Transcribe Speech" — wait 1-2 mins
-5. Edit captions if needed
-6. Click "Burn Captions & Download"
-7. Video downloads directly in your browser ✅
-   (Works on Chrome, Brave, Safari — including iPad!)
+(Flask now serves the page directly — no need to double-click index.html separately)
+
+4. Upload a video, pick a font + size + color theme, drag the caption position,
+   transcribe, then burn & download.
 
 ---
 
-## DEPLOY TO RENDER.COM
+## Deploying to Hugging Face
 
-### Step 1 — Push to GitHub
-Create a new GitHub repo and push all these files:
-- app.py
-- index.html
-- requirements.txt
-- Dockerfile
-
-### Step 2 — Create Render Web Service
-1. Go to render.com → New → Web Service
-2. Connect your GitHub repo
-3. Select "Docker" as environment
-4. Set name e.g. "captionshift"
-5. Click Deploy
-
-### Step 3 — Update the frontend URL
-Once deployed, Render gives you a URL like:
-  https://captionshift.onrender.com
-
-Open index.html, find this line (around line 800):
-  const BACKEND = "http://localhost:5001";
-
-Change it to:
-  const BACKEND = "https://captionshift.onrender.com";
-
-Then push to GitHub — Render auto-redeploys.
-
-### Step 4 — Access from iPad
-Open Safari/Chrome on iPad and go to:
-  https://captionshift.onrender.com
-Done! ✅
+1. Upload all files (including the `fonts/` folder) to your Hugging Face Space
+2. The Dockerfile already copies `fonts/` into the container
+3. No changes needed to `index.html` — `window.location.origin` handles it automatically
 
 ---
 
-## NOTES
-- Render free tier sleeps after 15 min inactivity (first request takes ~30s to wake)
-- The video processes on the server and downloads directly to your browser
-- Works on Safari, Chrome, and Brave on all devices
+## Known Notes
+
+- First run after deploy will be slightly slower because the `fonts/` folder
+  is copied into the temp upload directory once at startup.
+- If your input video's audio codec can't be copied into MP4 (very rare),
+  the backend automatically falls back to AAC 192kbps — still high quality.
