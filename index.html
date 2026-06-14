@@ -1035,23 +1035,46 @@
       });
 
       function handleVideo(file) {
-        videoFile = file;
-        const url = URL.createObjectURL(file);
-        const video = document.getElementById("previewVideo");
-        video.src = url;
-        document.getElementById("previewWrap").classList.add("show");
-        document.getElementById("uploadZone").style.display = "none";
-        segments = [];
-        lastJobId = null;
-        document.getElementById("transcriptWrap").classList.remove("show");
-        document.getElementById("generateBtn").disabled = true;
-        document.getElementById("downloadBtn").classList.remove("show");
-        updateButtons();
-        updateCaptionStyle();
-        showToast(
-          'Video loaded! Click "Transcribe Speech" to start.',
-          "success",
-        );
+        try {
+          if (!file) { showToast("No file received.", "error"); return; }
+
+          const MAX_MB = 500;
+          if (file.size > MAX_MB * 1024 * 1024) {
+            showToast(`File too large (${(file.size/1024/1024).toFixed(0)} MB). Max is ${MAX_MB} MB.`, "error");
+            return;
+          }
+
+          if (!file.type.startsWith("video/") && !file.name.match(/\.(mp4|mov|m4v|webm|avi|mkv)$/i)) {
+            showToast("Please select a video file (MP4, MOV, etc.).", "error");
+            return;
+          }
+
+          videoFile = file;
+          const url = URL.createObjectURL(file);
+          const video = document.getElementById("previewVideo");
+
+          video.onerror = () => {
+            showToast("\u26a0\ufe0f Browser couldn\'t preview this video, but upload may still work.", "error");
+          };
+
+          video.src = url;
+          document.getElementById("previewWrap").classList.add("show");
+          document.getElementById("uploadZone").style.display = "none";
+          segments = [];
+          lastJobId = null;
+          document.getElementById("transcriptWrap").classList.remove("show");
+          document.getElementById("generateBtn").disabled = true;
+          document.getElementById("downloadBtn").classList.remove("show");
+          updateButtons();
+          updateCaptionStyle();
+          showToast(
+            `Video loaded (${(file.size/1024/1024).toFixed(1)} MB)! Click "Transcribe Speech" to start.`,
+            "success",
+          );
+        } catch (err) {
+          showToast("Failed to load video: " + err.message, "error");
+          console.error("handleVideo error:", err);
+        }
       }
 
       // ——— Style, Font & Size selection ———
@@ -1305,28 +1328,23 @@
 
           setProgress(100, "✅ Done! Starting download...");
 
-          // Fetch as blob so Safari on iPad shows "Save to Files" instead of playing inline
-          async function triggerDownload(url, filename) {
-            const r = await fetch(url);
-            const blob = await r.blob();
-            const blobUrl = URL.createObjectURL(blob);
+          // Use direct navigation so Safari/iPad streams to disk instead of
+          // loading the entire file into JS memory (avoids OOM on large files).
+          function triggerDownload(url) {
             const a = document.createElement("a");
-            a.href = blobUrl;
-            a.download = filename;
+            a.href = url;
+            a.download = "captioned_video.mp4";
             document.body.appendChild(a);
             a.click();
-            setTimeout(() => {
-              document.body.removeChild(a);
-              URL.revokeObjectURL(blobUrl);
-            }, 1000);
+            setTimeout(() => document.body.removeChild(a), 500);
           }
 
-          triggerDownload(downloadUrl, "captioned_video.mp4");
+          triggerDownload(downloadUrl);
 
           // Show Download Again button
           const dlBtn = document.getElementById("downloadBtn");
           dlBtn.classList.add("show");
-          dlBtn.onclick = () => { triggerDownload(downloadUrl, "captioned_video.mp4"); };
+          dlBtn.onclick = () => { triggerDownload(downloadUrl); };
 
           document.getElementById("generateBtn").disabled = false;
           document.getElementById("generateBtn").textContent = "🎬 Burn Again";
@@ -1366,6 +1384,16 @@
 
       // Initialize preview style on load
       updateCaptionStyle();
+
+      // Global error catcher — surfaces silent JS failures as visible toasts
+      window.addEventListener("error", (e) => {
+        console.error("Uncaught error:", e.error || e.message);
+        showToast("JS Error: " + (e.message || "unknown error"), "error");
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        console.error("Unhandled promise rejection:", e.reason);
+        showToast("Error: " + (e.reason?.message || String(e.reason)), "error");
+      });
     </script>
   </body>
 </html>
