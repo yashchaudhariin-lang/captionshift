@@ -294,6 +294,71 @@
         cursor: grabbing;
       }
 
+      /* Title/POV handle — same mechanics as caption-handle, distinct color */
+      .title-handle {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        cursor: grab;
+        pointer-events: all;
+        user-select: none;
+        z-index: 11;
+        max-width: 90%;
+        display: none;
+      }
+
+      .title-handle.show {
+        display: block;
+      }
+
+      .title-handle:active {
+        cursor: grabbing;
+      }
+
+      .title-handle .handle-tag {
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ff6b35;
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        padding: 2px 7px;
+        border-radius: 999px;
+        white-space: nowrap;
+        text-transform: uppercase;
+      }
+
+      .caption-handle .handle-tag {
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--accent);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        padding: 2px 7px;
+        border-radius: 999px;
+        white-space: nowrap;
+        text-transform: uppercase;
+        opacity: 0;
+      }
+
+      .title-preview-text {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 16px;
+        text-align: center;
+        white-space: nowrap;
+        line-height: 1.4;
+        transition: all 0.15s ease;
+        border: 1px dashed rgba(255, 107, 53, 0.6);
+      }
+
       .caption-preview-text {
         padding: 4px 10px;
         border-radius: 4px;
@@ -641,7 +706,7 @@
   <body>
     <div class="wrapper">
       <header>
-        <div class="logo">CaptionShift<span class="version-badge">v2</span></div>
+        <div class="logo">CaptionShift<span class="version-badge">v4</span></div>
         <div class="tagline">
           Free AI Auto Captions · High Quality · Drag to Position
         </div>
@@ -679,11 +744,48 @@
                   id="captionHandle"
                   style="left: 50%; top: 85%"
                 >
+                  <div class="handle-tag" style="background: var(--accent); opacity: 1;">Caption</div>
                   <div class="caption-preview-text" id="captionPreviewText">
                     Your caption will appear here
                   </div>
                 </div>
+                <div
+                  class="title-handle"
+                  id="titleHandle"
+                  style="left: 50%; top: 15%"
+                >
+                  <div class="handle-tag">Title</div>
+                  <div class="title-preview-text" id="titlePreviewText">
+                    Your title will appear here
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <!-- Title / POV Text -->
+            <div class="card" style="margin-top: 16px">
+              <div class="card-title">🏷️ Title / POV Text (optional)</div>
+              <p style="font-size: 13px; color: var(--muted); margin-bottom: 12px">
+                A separate text overlay burned into the whole video — independent
+                from your captions. Leave blank to skip it.
+              </p>
+              <input
+                type="text"
+                id="titleTextInput"
+                placeholder="e.g. POV: Day 1 of my journey"
+                oninput="onTitleTextInput()"
+                style="
+                  width: 100%;
+                  padding: 10px 12px;
+                  background: var(--bg);
+                  border: 1px solid var(--border);
+                  border-radius: 10px;
+                  color: var(--text);
+                  font-family: 'Inter', sans-serif;
+                  font-size: 14px;
+                  outline: none;
+                "
+              />
             </div>
 
             <!-- Transcript Editor -->
@@ -696,6 +798,59 @@
 
         <!-- Right: Controls -->
         <div class="right-panel">
+
+          <!-- Caption Mode (NEW v4) -->
+          <div class="card">
+            <div class="card-title">⚡ Caption Mode</div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+              Choose how words appear on screen.
+            </p>
+
+            <!-- Mode toggle -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+              <div id="modeSentenceBtn" class="size-btn selected" onclick="selectCaptionMode('sentence')" style="padding:14px 8px;">
+                <span style="font-size:18px;display:block;">📄</span>
+                <span style="font-size:12px;font-weight:700;display:block;margin-top:4px;">Full Sentence</span>
+                <span style="font-size:10px;color:var(--muted);display:block;">Classic subtitles</span>
+              </div>
+              <div id="modeWordBtn" class="size-btn" onclick="selectCaptionMode('word')" style="padding:14px 8px;">
+                <span style="font-size:18px;display:block;">⚡</span>
+                <span style="font-size:12px;font-weight:700;display:block;margin-top:4px;">Word by Word</span>
+                <span style="font-size:10px;color:var(--muted);display:block;">CapCut / Reels style</span>
+              </div>
+            </div>
+
+            <!-- Words per caption (only visible in word mode) -->
+            <div id="wordChunkWrap" style="display:none;">
+              <span class="font-label">Words per caption</span>
+              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+                <div class="size-btn" onclick="selectChunkSize(1,this)" style="padding:10px 4px;">
+                  <span class="size-letter" style="font-size:15px;">1</span>
+                  <span class="size-name">One</span>
+                </div>
+                <div class="size-btn" onclick="selectChunkSize(2,this)" style="padding:10px 4px;">
+                  <span class="size-letter" style="font-size:15px;">2</span>
+                  <span class="size-name">Two</span>
+                </div>
+                <div class="size-btn selected" onclick="selectChunkSize(3,this)" id="chunkDefault" style="padding:10px 4px;">
+                  <span class="size-letter" style="font-size:15px;">3</span>
+                  <span class="size-name">Three</span>
+                </div>
+                <div class="size-btn" onclick="selectChunkSize(4,this)" style="padding:10px 4px;">
+                  <span class="size-letter" style="font-size:15px;">4</span>
+                  <span class="size-name">Four</span>
+                </div>
+                <div class="size-btn" onclick="selectChunkSize(5,this)" style="padding:10px 4px;">
+                  <span class="size-letter" style="font-size:15px;">5</span>
+                  <span class="size-name">Five</span>
+                </div>
+              </div>
+              <p style="font-size:11px;color:var(--muted);margin-top:10px;">
+                💡 3 words is the sweet spot — matches natural speech rhythm and looks great on Reels, Shorts &amp; TikTok.
+              </p>
+            </div>
+          </div>
+
           <!-- Caption Style -->
           <div class="card">
             <div class="card-title">🎨 Caption Style</div>
@@ -906,6 +1061,218 @@
             </div>
           </div>
 
+          <!-- Title Style -->
+          <div class="card" id="titleStyleCard">
+            <div class="card-title">🏷️ Title Style</div>
+            <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px; margin-top: -4px;">
+              Only used if you typed a Title/POV text above.
+            </p>
+
+            <!-- Title Font Picker -->
+            <span class="font-label">🔤 Font</span>
+            <select class="font-picker" id="titleFontPicker" onchange="selectTitleFont(this.value)">
+              <optgroup label="✨ Custom Fonts">
+                <option value="Montserrat">Montserrat — Modern Bold</option>
+                <option value="Oswald">Oswald — Tall Condensed</option>
+                <option value="Anton" selected>Anton — Heavy Display</option>
+                <option value="Bebas Neue">Bebas Neue — Impact Caps</option>
+                <option value="Righteous">Righteous — Retro Rounded</option>
+                <option value="Pacifico">Pacifico — Handwriting</option>
+                <option value="Lobster">Lobster — Playful Script</option>
+                <option value="Dancing Script">Dancing Script — Elegant Cursive</option>
+                <option value="Amatic SC">Amatic SC — Thin Handwritten</option>
+              </optgroup>
+              <optgroup label="System Fonts">
+                <option value="Arial">Arial — Clean &amp; Neutral</option>
+                <option value="Impact">Impact — Bold / Meme</option>
+                <option value="Helvetica">Helvetica — Minimal / Pro</option>
+                <option value="Georgia">Georgia — Elegant / Editorial</option>
+                <option value="Courier New">Courier New — Typewriter</option>
+                <option value="Trebuchet MS">Trebuchet MS — Friendly</option>
+                <option value="Comic Sans MS">Comic Sans — Casual / Fun</option>
+                <option value="Verdana">Verdana — Very Readable</option>
+                <option value="Tahoma">Tahoma — Crisp / Compact</option>
+                <option value="Palatino Linotype">Palatino — Cinematic</option>
+                <option value="Century Gothic">Century Gothic — Geometric</option>
+                <option value="Times New Roman">Times New Roman — Classic</option>
+              </optgroup>
+            </select>
+
+            <!-- Title Font Size -->
+            <span class="font-label" style="margin-top:14px;">📏 Font Size</span>
+            <div class="size-options">
+              <div class="size-btn" onclick="selectTitleSize('small', this)">
+                <span class="size-letter" style="font-size:14px;">A</span>
+                <span class="size-name">Small</span>
+              </div>
+              <div class="size-btn" onclick="selectTitleSize('medium', this)">
+                <span class="size-letter" style="font-size:18px;">A</span>
+                <span class="size-name">Medium</span>
+              </div>
+              <div class="size-btn selected" onclick="selectTitleSize('large', this)">
+                <span class="size-letter" style="font-size:22px;">A</span>
+                <span class="size-name">Large</span>
+              </div>
+              <div class="size-btn" onclick="selectTitleSize('xlarge', this)">
+                <span class="size-letter" style="font-size:26px;">A</span>
+                <span class="size-name">XL</span>
+              </div>
+            </div>
+
+            <!-- Title Color Theme -->
+            <span class="font-label" style="margin-top:14px;">🎭 Color Theme</span>
+            <div class="style-options-wrap">
+
+            <div class="style-group-label">Bold &amp; Bright</div>
+            <div class="style-options">
+              <div class="style-btn selected" onclick="selectTitleStyle('clean_white', this)">
+                <div class="style-sample" style="color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;">Aa</div>
+                <div class="style-name">Clean White</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('bold_yellow', this)">
+                <div class="style-sample" style="color:#ffd700;text-shadow:0 0 3px #000,0 0 3px #000;">Aa</div>
+                <div class="style-name">Bold Yellow</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('black_box', this)">
+                <div class="style-sample" style="color:#fff;background:#000;padding:2px 6px;border-radius:3px;">Aa</div>
+                <div class="style-name">Black Box</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('neon_green', this)">
+                <div class="style-sample" style="color:#00ff66;text-shadow:0 0 4px #00ff66;">Aa</div>
+                <div class="style-name">Neon Green</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('fire_red', this)">
+                <div class="style-sample" style="color:#ff2020;text-shadow:0 0 4px #000,0 0 4px #000;">Aa</div>
+                <div class="style-name">Fire Red</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('sky_blue', this)">
+                <div class="style-sample" style="color:#38bdf8;text-shadow:0 0 4px #000,0 0 4px #000;">Aa</div>
+                <div class="style-name">Sky Blue</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('pink_pop', this)">
+                <div class="style-sample" style="color:#ff69b4;text-shadow:0 0 4px #000,0 0 4px #000;">Aa</div>
+                <div class="style-name">Pink Pop</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('outline_only', this)">
+                <div class="style-sample" style="color:#fff;-webkit-text-stroke:1px #000;text-stroke:1px #000;">Aa</div>
+                <div class="style-name">Outline</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('gradient_gold', this)">
+                <div class="style-sample" style="color:#ffaa00;text-shadow:0 0 4px #000,0 0 4px #000;">Aa</div>
+                <div class="style-name">Gold</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('cyan_glow', this)">
+                <div class="style-sample" style="color:#00ffff;text-shadow:0 0 6px #00ffff,0 0 3px #00ffff;">Aa</div>
+                <div class="style-name">Cyan Glow</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('dark_subtitle', this)">
+                <div class="style-sample" style="color:#fff;background:rgba(0,0,0,0.85);padding:2px 8px;border-radius:3px;">Aa</div>
+                <div class="style-name">Netflix</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('purple_haze', this)">
+                <div class="style-sample" style="color:#cc00ff;text-shadow:0 0 6px #cc00ff,0 0 3px #cc00ff;">Aa</div>
+                <div class="style-name">Purple Haze</div>
+              </div>
+            </div>
+
+            <div class="style-group-label">✨ Elegant (New)</div>
+            <div class="style-options">
+              <div class="style-btn" onclick="selectTitleStyle('ivory_classic', this)">
+                <div class="style-sample" style="color:#fffff0;text-shadow:0 0 3px #2b1d14,0 0 3px #2b1d14;">Aa</div>
+                <div class="style-name">Ivory Classic</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('rose_gold', this)">
+                <div class="style-sample" style="color:#f0c9c0;text-shadow:0 0 3px #5a2e27,0 0 3px #5a2e27;">Aa</div>
+                <div class="style-name">Rose Gold</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('ice_blue', this)">
+                <div class="style-sample" style="color:#cfefff;text-shadow:0 0 3px #0e2a3d,0 0 3px #0e2a3d;">Aa</div>
+                <div class="style-name">Ice Blue</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('mint_glow', this)">
+                <div class="style-sample" style="color:#9cffd0;text-shadow:0 0 6px #003322,0 0 6px #9cffd0;">Aa</div>
+                <div class="style-name">Mint Glow</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('sunset_coral', this)">
+                <div class="style-sample" style="color:#ff7e5f;text-shadow:0 0 3px #3a0e04,0 0 3px #3a0e04;">Aa</div>
+                <div class="style-name">Sunset Coral</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('royal_purple_box', this)">
+                <div class="style-sample" style="color:#fff;background:rgba(45,10,78,0.9);padding:2px 8px;border-radius:3px;">Aa</div>
+                <div class="style-name">Royal Purple</div>
+              </div>
+              <div class="style-btn" onclick="selectTitleStyle('cinema_subtitle', this)">
+                <div class="style-sample" style="color:#f5f5f5;background:rgba(0,0,0,0.9);padding:2px 10px;border-radius:3px;letter-spacing:0.1em;">Aa</div>
+                <div class="style-name">Cinema</div>
+              </div>
+            </div>
+
+            </div>
+          </div>
+
+          <!-- Title Position -->
+          <div class="card" id="titlePositionCard">
+            <div class="card-title">📍 Title Position</div>
+            <p
+              style="font-size: 13px; color: var(--muted); margin-bottom: 12px"
+            >
+              Drag the orange title label on the video preview to position it.
+            </p>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <span class="info-pill">Title X: <span id="titlePosX">50</span>%</span>
+              <span class="info-pill">Title Y: <span id="titlePosY">15</span>%</span>
+            </div>
+            <div
+              style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap"
+            >
+              <button
+                onclick="setTitlePreset(50, 15)"
+                style="
+                  flex: 1;
+                  padding: 8px;
+                  background: var(--bg);
+                  border: 1px solid var(--border);
+                  border-radius: 8px;
+                  color: var(--text);
+                  cursor: pointer;
+                  font-size: 12px;
+                "
+              >
+                ⬆ Top
+              </button>
+              <button
+                onclick="setTitlePreset(50, 50)"
+                style="
+                  flex: 1;
+                  padding: 8px;
+                  background: var(--bg);
+                  border: 1px solid var(--border);
+                  border-radius: 8px;
+                  color: var(--text);
+                  cursor: pointer;
+                  font-size: 12px;
+                "
+              >
+                ⬛ Middle
+              </button>
+              <button
+                onclick="setTitlePreset(50, 85)"
+                style="
+                  flex: 1;
+                  padding: 8px;
+                  background: var(--bg);
+                  border: 1px solid var(--border);
+                  border-radius: 8px;
+                  color: var(--text);
+                  cursor: pointer;
+                  font-size: 12px;
+                "
+              >
+                ⬇ Bottom
+              </button>
+            </div>
+          </div>
+
           <!-- Actions -->
           <div class="card">
             <div class="card-title">⚡ Generate</div>
@@ -981,17 +1348,25 @@
     <script>
       // Auto-detect backend — works locally (python app.py) and on Hugging Face
       // since app.py now serves this file from the same origin.
-     const BACKEND = window.location.hostname.includes('hf.space')
-  ? window.location.origin
-  : 'https://yash4940-captionshift-backend.hf.space';
+      const BACKEND = window.location.origin;
 
       let videoFile = null;
-      let segments = [];
+      let segments  = [];
+      let wordsData = [];           // v4: raw word timestamps from /transcribe
+      let captionMode    = 'sentence';  // v4: 'sentence' | 'word'
+      let wordChunkSize  = 3;           // v4: 1-5
       let selectedStyle = "clean_white";
       let selectedFont = "Montserrat";
       let selectedSize = "medium";
       let captionPosition = { x: 50, y: 85 };
       let lastJobId = null;
+
+      // Title/POV overlay state (independent from captions)
+      let titleText = "";
+      let selectedTitleStyle = "clean_white";
+      let selectedTitleFont = "Anton";
+      let selectedTitleSize = "large";
+      let titlePosition = { x: 50, y: 15 };
 
       // ——— Server check ———
       async function checkServer() {
@@ -1035,46 +1410,23 @@
       });
 
       function handleVideo(file) {
-        try {
-          if (!file) { showToast("No file received.", "error"); return; }
-
-          const MAX_MB = 500;
-          if (file.size > MAX_MB * 1024 * 1024) {
-            showToast(`File too large (${(file.size/1024/1024).toFixed(0)} MB). Max is ${MAX_MB} MB.`, "error");
-            return;
-          }
-
-          if (!file.type.startsWith("video/") && !file.name.match(/\.(mp4|mov|m4v|webm|avi|mkv)$/i)) {
-            showToast("Please select a video file (MP4, MOV, etc.).", "error");
-            return;
-          }
-
-          videoFile = file;
-          const url = URL.createObjectURL(file);
-          const video = document.getElementById("previewVideo");
-
-          video.onerror = () => {
-            showToast("\u26a0\ufe0f Browser couldn\'t preview this video, but upload may still work.", "error");
-          };
-
-          video.src = url;
-          document.getElementById("previewWrap").classList.add("show");
-          document.getElementById("uploadZone").style.display = "none";
-          segments = [];
-          lastJobId = null;
-          document.getElementById("transcriptWrap").classList.remove("show");
-          document.getElementById("generateBtn").disabled = true;
-          document.getElementById("downloadBtn").classList.remove("show");
-          updateButtons();
-          updateCaptionStyle();
-          showToast(
-            `Video loaded (${(file.size/1024/1024).toFixed(1)} MB)! Click "Transcribe Speech" to start.`,
-            "success",
-          );
-        } catch (err) {
-          showToast("Failed to load video: " + err.message, "error");
-          console.error("handleVideo error:", err);
-        }
+        videoFile = file;
+        const url = URL.createObjectURL(file);
+        const video = document.getElementById("previewVideo");
+        video.src = url;
+        document.getElementById("previewWrap").classList.add("show");
+        document.getElementById("uploadZone").style.display = "none";
+        segments = [];
+        lastJobId = null;
+        document.getElementById("transcriptWrap").classList.remove("show");
+        document.getElementById("generateBtn").disabled = true;
+        document.getElementById("downloadBtn").classList.remove("show");
+        updateButtons();
+        updateCaptionStyle();
+        showToast(
+          'Video loaded! Click "Transcribe Speech" to start.',
+          "success",
+        );
       }
 
       // ——— Style, Font & Size selection ———
@@ -1095,40 +1447,66 @@
       function selectSize(size, btn) {
         selectedSize = size;
         document
-          .querySelectorAll(".size-btn")
+          .querySelectorAll(".size-options .size-btn")
           .forEach((b) => b.classList.remove("selected"));
         btn.classList.add("selected");
         updateCaptionStyle();
       }
 
+      // ——— Caption Mode (v4) ———
+      function selectCaptionMode(mode) {
+        captionMode = mode;
+        const sentBtn = document.getElementById('modeSentenceBtn');
+        const wordBtn  = document.getElementById('modeWordBtn');
+        const chunkWrap = document.getElementById('wordChunkWrap');
+        if (mode === 'word') {
+          sentBtn.classList.remove('selected');
+          wordBtn.classList.add('selected');
+          chunkWrap.style.display = 'block';
+        } else {
+          wordBtn.classList.remove('selected');
+          sentBtn.classList.add('selected');
+          chunkWrap.style.display = 'none';
+        }
+      }
+
+      function selectChunkSize(size, btn) {
+        wordChunkSize = size;
+        document.querySelectorAll('#wordChunkWrap .size-btn')
+          .forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      }
+
       const SIZE_PX = { small: 13, medium: 16, large: 20, xlarge: 26 };
+
+      // Shared color-theme map — used for both caption and title previews
+      const STYLE_PREVIEW_MAP = {
+        // Bold & Bright
+        clean_white:   { color: "#fff",    background: "none",              textShadow: "0 0 4px #000,0 0 4px #000,0 0 4px #000" },
+        bold_yellow:   { color: "#FFD700", background: "none",              textShadow: "0 0 5px #000,0 0 5px #000" },
+        black_box:     { color: "#fff",    background: "rgba(0,0,0,0.75)",  textShadow: "none", borderRadius: "4px" },
+        neon_green:    { color: "#00ff66", background: "none",              textShadow: "0 0 8px #00ff66,0 0 4px #00ff66" },
+        fire_red:      { color: "#ff2020", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
+        sky_blue:      { color: "#38bdf8", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
+        pink_pop:      { color: "#ff69b4", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
+        outline_only:  { color: "#fff",    background: "none",              textShadow: "-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000" },
+        gradient_gold: { color: "#ffaa00", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
+        cyan_glow:     { color: "#00ffff", background: "none",              textShadow: "0 0 8px #00ffff,0 0 4px #00ffff" },
+        dark_subtitle: { color: "#fff",    background: "rgba(0,0,0,0.85)",  textShadow: "none", borderRadius: "4px" },
+        purple_haze:   { color: "#cc00ff", background: "none",              textShadow: "0 0 8px #cc00ff,0 0 4px #cc00ff" },
+        // Elegant (v2)
+        ivory_classic:    { color: "#fffff0", background: "none", textShadow: "0 0 3px #2b1d14,0 0 3px #2b1d14" },
+        rose_gold:        { color: "#f0c9c0", background: "none", textShadow: "0 0 3px #5a2e27,0 0 3px #5a2e27" },
+        ice_blue:         { color: "#cfefff", background: "none", textShadow: "0 0 3px #0e2a3d,0 0 3px #0e2a3d" },
+        mint_glow:        { color: "#9cffd0", background: "none", textShadow: "0 0 8px #003322,0 0 6px #9cffd0" },
+        sunset_coral:     { color: "#ff7e5f", background: "none", textShadow: "0 0 3px #3a0e04,0 0 3px #3a0e04" },
+        royal_purple_box: { color: "#fff", background: "rgba(45,10,78,0.9)", textShadow: "none", borderRadius: "4px" },
+        cinema_subtitle:  { color: "#f5f5f5", background: "rgba(0,0,0,0.9)", textShadow: "none", borderRadius: "3px", letterSpacing: "0.12em" },
+      };
 
       function updateCaptionStyle() {
         const text = document.getElementById("captionPreviewText");
-        const styles = {
-          // Bold & Bright
-          clean_white:   { color: "#fff",    background: "none",              textShadow: "0 0 4px #000,0 0 4px #000,0 0 4px #000" },
-          bold_yellow:   { color: "#FFD700", background: "none",              textShadow: "0 0 5px #000,0 0 5px #000" },
-          black_box:     { color: "#fff",    background: "rgba(0,0,0,0.75)",  textShadow: "none", borderRadius: "4px" },
-          neon_green:    { color: "#00ff66", background: "none",              textShadow: "0 0 8px #00ff66,0 0 4px #00ff66" },
-          fire_red:      { color: "#ff2020", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
-          sky_blue:      { color: "#38bdf8", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
-          pink_pop:      { color: "#ff69b4", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
-          outline_only:  { color: "#fff",    background: "none",              textShadow: "-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000" },
-          gradient_gold: { color: "#ffaa00", background: "none",              textShadow: "0 0 4px #000,0 0 4px #000" },
-          cyan_glow:     { color: "#00ffff", background: "none",              textShadow: "0 0 8px #00ffff,0 0 4px #00ffff" },
-          dark_subtitle: { color: "#fff",    background: "rgba(0,0,0,0.85)",  textShadow: "none", borderRadius: "4px" },
-          purple_haze:   { color: "#cc00ff", background: "none",              textShadow: "0 0 8px #cc00ff,0 0 4px #cc00ff" },
-          // Elegant (v2)
-          ivory_classic:    { color: "#fffff0", background: "none", textShadow: "0 0 3px #2b1d14,0 0 3px #2b1d14" },
-          rose_gold:        { color: "#f0c9c0", background: "none", textShadow: "0 0 3px #5a2e27,0 0 3px #5a2e27" },
-          ice_blue:         { color: "#cfefff", background: "none", textShadow: "0 0 3px #0e2a3d,0 0 3px #0e2a3d" },
-          mint_glow:        { color: "#9cffd0", background: "none", textShadow: "0 0 8px #003322,0 0 6px #9cffd0" },
-          sunset_coral:     { color: "#ff7e5f", background: "none", textShadow: "0 0 3px #3a0e04,0 0 3px #3a0e04" },
-          royal_purple_box: { color: "#fff", background: "rgba(45,10,78,0.9)", textShadow: "none", borderRadius: "4px" },
-          cinema_subtitle:  { color: "#f5f5f5", background: "rgba(0,0,0,0.9)", textShadow: "none", borderRadius: "3px", letterSpacing: "0.12em" },
-        };
-        const s = styles[selectedStyle] || styles["clean_white"];
+        const s = STYLE_PREVIEW_MAP[selectedStyle] || STYLE_PREVIEW_MAP["clean_white"];
 
         // Reset before applying
         text.style.textShadow = "none";
@@ -1142,6 +1520,62 @@
 
         text.style.fontFamily = `"${selectedFont}", sans-serif`;
         text.style.fontSize = (SIZE_PX[selectedSize] || 16) + "px";
+      }
+
+      // ——— Title/POV style, font & size selection (independent panel) ———
+      function selectTitleStyle(style, btn) {
+        selectedTitleStyle = style;
+        document
+          .querySelectorAll("#titleStyleCard .style-options .style-btn")
+          .forEach((b) => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        updateTitleStyle();
+      }
+
+      function selectTitleFont(font) {
+        selectedTitleFont = font;
+        updateTitleStyle();
+      }
+
+      function selectTitleSize(size, btn) {
+        selectedTitleSize = size;
+        document
+          .querySelectorAll("#titleStyleCard .size-btn")
+          .forEach((b) => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        updateTitleStyle();
+      }
+
+      function updateTitleStyle() {
+        const text = document.getElementById("titlePreviewText");
+        const s = STYLE_PREVIEW_MAP[selectedTitleStyle] || STYLE_PREVIEW_MAP["clean_white"];
+
+        text.style.textShadow = "none";
+        text.style.background = "none";
+        text.style.borderRadius = "0";
+        text.style.letterSpacing = "normal";
+        text.style.padding = "4px 8px";
+
+        Object.assign(text.style, s);
+        if (s.background !== "none") text.style.padding = "6px 12px";
+
+        text.style.fontFamily = `"${selectedTitleFont}", sans-serif`;
+        text.style.fontSize = (SIZE_PX[selectedTitleSize] || 16) + "px";
+      }
+
+      function onTitleTextInput() {
+        const input = document.getElementById("titleTextInput");
+        titleText = input.value;
+        const preview = document.getElementById("titlePreviewText");
+        const handle = document.getElementById("titleHandle");
+
+        if (titleText.trim()) {
+          preview.textContent = titleText;
+          handle.classList.add("show");
+        } else {
+          preview.textContent = "Your title will appear here";
+          handle.classList.remove("show");
+        }
       }
 
       // ——— Draggable caption ———
@@ -1214,6 +1648,74 @@
         document.getElementById("posY").textContent = y;
       }
 
+      // ——— Draggable title/POV handle (independent drag state from caption) ———
+      const titleHandleEl = document.getElementById("titleHandle");
+      let isDraggingTitle = false;
+      let titleStartX, titleStartY, titleStartLeft, titleStartTop;
+
+      titleHandleEl.addEventListener("mousedown", (e) => {
+        isDraggingTitle = true;
+        titleStartX = e.clientX;
+        titleStartY = e.clientY;
+        titleStartLeft = parseFloat(titleHandleEl.style.left);
+        titleStartTop = parseFloat(titleHandleEl.style.top);
+        e.preventDefault();
+      });
+
+      titleHandleEl.addEventListener(
+        "touchstart",
+        (e) => {
+          isDraggingTitle = true;
+          titleStartX = e.touches[0].clientX;
+          titleStartY = e.touches[0].clientY;
+          titleStartLeft = parseFloat(titleHandleEl.style.left);
+          titleStartTop = parseFloat(titleHandleEl.style.top);
+          e.preventDefault();
+        },
+        { passive: false },
+      );
+
+      document.addEventListener("mousemove", (e) => {
+        if (!isDraggingTitle) return;
+        moveTitle(e.clientX, e.clientY);
+      });
+
+      document.addEventListener(
+        "touchmove",
+        (e) => {
+          if (!isDraggingTitle) return;
+          moveTitle(e.touches[0].clientX, e.touches[0].clientY);
+        },
+        { passive: false },
+      );
+
+      document.addEventListener("mouseup", () => (isDraggingTitle = false));
+      document.addEventListener("touchend", () => (isDraggingTitle = false));
+
+      function moveTitle(clientX, clientY) {
+        const overlay = document.getElementById("captionOverlay");
+        const rect = overlay.getBoundingClientRect();
+        const dx = clientX - titleStartX;
+        const dy = clientY - titleStartY;
+        let newLeft = titleStartLeft + (dx / rect.width) * 100;
+        let newTop = titleStartTop + (dy / rect.height) * 100;
+        newLeft = Math.max(10, Math.min(90, newLeft));
+        newTop = Math.max(5, Math.min(95, newTop));
+        titleHandleEl.style.left = newLeft + "%";
+        titleHandleEl.style.top = newTop + "%";
+        titlePosition = { x: Math.round(newLeft), y: Math.round(newTop) };
+        document.getElementById("titlePosX").textContent = Math.round(newLeft);
+        document.getElementById("titlePosY").textContent = Math.round(newTop);
+      }
+
+      function setTitlePreset(x, y) {
+        titleHandleEl.style.left = x + "%";
+        titleHandleEl.style.top = y + "%";
+        titlePosition = { x, y };
+        document.getElementById("titlePosX").textContent = x;
+        document.getElementById("titlePosY").textContent = y;
+      }
+
       // ——— Transcribe ———
       async function transcribeVideo() {
         if (!videoFile) return;
@@ -1240,7 +1742,8 @@
           const data = await res.json();
           if (data.error) throw new Error(data.error);
 
-          segments = data.segments;
+          segments  = data.segments;
+          wordsData = data.words || [];   // v4: word-level timestamps
           setProgress(100, `✅ Found ${segments.length} caption segments!`);
 
           renderSegments();
@@ -1312,6 +1815,22 @@
           formData.append("font_size", selectedSize);
           formData.append("position", JSON.stringify(captionPosition));
 
+          // v4: word-mode fields
+          formData.append("caption_mode", captionMode);
+          formData.append("word_chunk_size", wordChunkSize);
+          if (captionMode === 'word' && wordsData.length > 0) {
+            formData.append("words", JSON.stringify(wordsData));
+          }
+
+          const trimmedTitle = titleText.trim();
+          if (trimmedTitle) {
+            formData.append("title_text", trimmedTitle);
+            formData.append("title_style", selectedTitleStyle);
+            formData.append("title_font", selectedTitleFont);
+            formData.append("title_size", selectedTitleSize);
+            formData.append("title_position", JSON.stringify(titlePosition));
+          }
+
           setProgress(50, "Burning captions at original quality...");
 
           const res = await fetch(`${BACKEND}/generate`, {
@@ -1328,23 +1847,28 @@
 
           setProgress(100, "✅ Done! Starting download...");
 
-          // Use direct navigation so Safari/iPad streams to disk instead of
-          // loading the entire file into JS memory (avoids OOM on large files).
-          function triggerDownload(url) {
+          // Fetch as blob so Safari on iPad shows "Save to Files" instead of playing inline
+          async function triggerDownload(url, filename) {
+            const r = await fetch(url);
+            const blob = await r.blob();
+            const blobUrl = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = url;
-            a.download = "captioned_video.mp4";
+            a.href = blobUrl;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
-            setTimeout(() => document.body.removeChild(a), 500);
+            setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(blobUrl);
+            }, 1000);
           }
 
-          triggerDownload(downloadUrl);
+          triggerDownload(downloadUrl, "captioned_video.mp4");
 
           // Show Download Again button
           const dlBtn = document.getElementById("downloadBtn");
           dlBtn.classList.add("show");
-          dlBtn.onclick = () => { triggerDownload(downloadUrl); };
+          dlBtn.onclick = () => { triggerDownload(downloadUrl, "captioned_video.mp4"); };
 
           document.getElementById("generateBtn").disabled = false;
           document.getElementById("generateBtn").textContent = "🎬 Burn Again";
@@ -1384,16 +1908,7 @@
 
       // Initialize preview style on load
       updateCaptionStyle();
-
-      // Global error catcher — surfaces silent JS failures as visible toasts
-      window.addEventListener("error", (e) => {
-        console.error("Uncaught error:", e.error || e.message);
-        showToast("JS Error: " + (e.message || "unknown error"), "error");
-      });
-      window.addEventListener("unhandledrejection", (e) => {
-        console.error("Unhandled promise rejection:", e.reason);
-        showToast("Error: " + (e.reason?.message || String(e.reason)), "error");
-      });
+      updateTitleStyle();
     </script>
   </body>
 </html>
