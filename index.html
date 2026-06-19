@@ -1346,12 +1346,14 @@
     <div class="toast" id="toast"></div>
 
     <script>
-      // Auto-detect backend — works locally (python app.py) and on Hugging Face
-      // since app.py now serves this file from the same origin.
-      const BACKEND = "https://yash4940-captionshift-backend.hf.space"; // ✅ points to HF
+      // Backend is hosted on Hugging Face Spaces (Flask + Whisper + FFmpeg).
+      // Frontend is hosted on Vercel (static). They are different origins.
+      const BACKEND = "https://yash4940-captionshift-backend.hf.space";
 
       let videoFile = null;
-      let segments  = [];
+      let segments  = [];           // the ACTIVE, editable list (whatever is shown/edited/burned)
+      let sentenceSegments = [];    // v4 fix: sentence-level segments, edited independently
+      let wordSegments     = [];    // v4 fix: word-chunked segments, edited independently
       let wordsData = [];           // v4: raw word timestamps from /transcribe
       let captionMode    = 'sentence';  // v4: 'sentence' | 'word'
       let wordChunkSize  = 3;           // v4: 1-5
@@ -1468,6 +1470,10 @@
           sentBtn.classList.add('selected');
           chunkWrap.style.display = 'none';
         }
+        // v4 fix: swap in the editable segment list for this mode so the
+        // editor always reflects (and edits) what will actually be burned.
+        segments = (mode === 'word') ? wordSegments : sentenceSegments;
+        if (segments.length > 0) renderSegments();
       }
 
       function selectChunkSize(size, btn) {
@@ -1475,6 +1481,15 @@
         document.querySelectorAll('#wordChunkWrap .size-btn')
           .forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
+        // v4 fix: changing chunk size changes word groupings, so rebuild
+        // wordSegments from the raw words and refresh the editor. (Any
+        // in-progress word-mode edits are superseded since the chunk
+        // boundaries themselves have changed.)
+        if (captionMode === 'word' && wordsData.length > 0) {
+          wordSegments = chunkWordsIntoSegments(wordsData, wordChunkSize);
+          segments = wordSegments;
+          renderSegments();
+        }
       }
 
       const SIZE_PX = { small: 13, medium: 16, large: 20, xlarge: 26 };
@@ -1744,6 +1759,14 @@
 
           segments  = data.segments;
           wordsData = data.words || [];   // v4: word-level timestamps
+
+          // v4 fix: build BOTH editable segment sets up front, so whichever
+          // mode the user picks, the editor and the burned video always use
+          // the SAME data the user is looking at and editing.
+          sentenceSegments = data.segments;
+          wordSegments      = chunkWordsIntoSegments(wordsData, wordChunkSize);
+          segments = (captionMode === 'word') ? wordSegments : sentenceSegments;
+
           setProgress(100, `✅ Found ${segments.length} caption segments!`);
 
           renderSegments();
@@ -1770,6 +1793,23 @@
             "🎙 Transcribe Speech";
           showToast("Error: " + err.message, "error");
         }
+      }
+
+      // v4 fix: mirrors backend chunk_words_into_segments() so the editor
+      // shows exactly what will be burned in word mode.
+      function chunkWordsIntoSegments(words, chunkSize) {
+        const segs = [];
+        for (let i = 0; i < words.length; i += chunkSize) {
+          const chunk = words.slice(i, i + chunkSize);
+          if (chunk.length === 0) continue;
+          const text = chunk.map((w) => w.word.trim()).join(" ");
+          segs.push({
+            start: chunk[0].start,
+            end: chunk[chunk.length - 1].end,
+            text,
+          });
+        }
+        return segs;
       }
 
       function renderSegments() {
@@ -1815,12 +1855,13 @@
           formData.append("font_size", selectedSize);
           formData.append("position", JSON.stringify(captionPosition));
 
-          // v4: word-mode fields
+          // v4 fix: caption_mode/word_chunk_size are still sent so the backend
+          // can log/behave correctly, but we NO LONGER send the raw unedited
+          // 'words' list. `segments` (built above) is always the live,
+          // user-edited data for whichever mode is active — that's the only
+          // thing that should ever reach the burned video.
           formData.append("caption_mode", captionMode);
           formData.append("word_chunk_size", wordChunkSize);
-          if (captionMode === 'word' && wordsData.length > 0) {
-            formData.append("words", JSON.stringify(wordsData));
-          }
 
           const trimmedTitle = titleText.trim();
           if (trimmedTitle) {

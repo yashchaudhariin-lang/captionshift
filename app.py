@@ -350,13 +350,17 @@ def generate():
         word_chunk_size = int(request.form.get('word_chunk_size', 3))
         word_chunk_size = max(1, min(word_chunk_size, 5))   # clamp 1-5
 
-        # Segments come from the frontend (user may have edited them)
+        # Segments come from the frontend and reflect whatever the user has
+        # edited in the caption editor — this is the source of truth and must
+        # always win, regardless of caption_mode.
         segments = json.loads(request.form.get('segments', '[]'))
 
-        # If word mode, also accept raw word list and re-chunk server-side
-        # (frontend can pass 'words' directly instead of pre-chunked segments)
+        # Fallback only: if no segments were supplied at all (e.g. an older
+        # client), re-chunk from raw word timestamps. This path is never hit
+        # when the frontend sends edited segments, so user edits are never
+        # silently discarded.
         words_raw = request.form.get('words', '')
-        if caption_mode == 'word' and words_raw:
+        if not segments and caption_mode == 'word' and words_raw:
             words    = json.loads(words_raw)
             segments = chunk_words_into_segments(words, chunk_size=word_chunk_size)
 
